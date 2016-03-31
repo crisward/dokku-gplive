@@ -18,5 +18,5 @@ in parallel.
 ## Install
 
 ```
-sudo dokku plugin:install https://github.com/crisward/dokku-gitpushlive.git gitpushlive
+sudo dokku plugin:install https://github.com/crisward/dokku-gplive.git gplive
 ```
