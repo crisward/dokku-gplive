@@ -1,5 +1,7 @@
 # dokku-gitpushlive
 
+## What does it do
+
 This plugin reads
   * docker-options
   * urls
@@ -12,3 +14,9 @@ It should be significantly quicker than running the commands individually as mos
 in parallel.
 
 (please note, this is for an internal project and probably won't be much use to anyone)
+
+## Install
+
+```
+sudo dokku plugin:install https://github.com/crisward/dokku-gitpushlive.git gitpushlive
+```
