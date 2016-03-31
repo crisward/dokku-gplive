@@ -10,3 +10,5 @@ It outputs all these as a single text stream.
 
 It should be significantly quicker than running the commands individually as most of the commands are run
 in parallel.
+
+(please note, this is for an internal project and probably won't be much use to anyone)
