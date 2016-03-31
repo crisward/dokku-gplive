@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+
+case "$1" in
+  help | gitpushlive:help)
+    help_content_func () {
+      declare desc="return help_content string"
+      cat<<help_content
+    gitpushlive, returns data about all apps    
+help_content
+    }
+
+    if [[ $1 = "gitpushlive:help" ]] ; then
+        echo -e 'Usage: dokku gitpushlive'
+        echo ''
+        echo 'Gets all the data from an app or all apps for syncing with gitpushlive.com'
+        echo ''
+        echo 'Example:'
+        echo ''
+        echo '$ dokku gitpushlive'
+        echo ''
+    else
+        help_content_func
+    fi
+    ;;
+  
+  gitpushlive)
+    gitpushlive_main_cmd() {
+      declare desc="outputs data for syncing with gitpushlive"
+      local cmd="gitpushlive"
+      local app
+      local cachefiles
+      local dokku_apps=$(ls -d $DOKKU_ROOT/*/ 2>/dev/null) || (dokku_log_fail "You haven't deployed any applications yet")
+      local plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
+      # make cach dir
+      local cachedir=$DOKKU_ROOT/.gitpushcache 
+      [ -d $cachedir ] || mkdir $cachedir
+      # loop over apps, getting all docker options and urls asynchronously
+      for dokku_app in $dokku_apps; do
+        APP=$(basename $dokku_app)
+        dokku docker-options $APP > $cachedir/$APP.options &
+        dokku urls $APP > $cachedir/$APP.urls &
+      done
+      # loop over plugins - list all db's that are installed
+      for pluginpath in $plugins; do
+        plugin=$(basename $pluginpath)
+        case $plugin in
+          mariadb | redis | couchdb | elasticsearch | memcached | mongo | mysql | postgres | rabbitmq | rethinkdb)
+            dokku $plugin:list > $cachedir/$plugin.list &
+          ;;
+          letsencrypt)
+            dokku $plugin:ls > $cachedir/$plugin.list &
+          ;;   
+        esac
+      done
+      wait
+      # loop over cached files, stick together to be processed by server
+      cachefiles=$(ls -A $cachedir 2>/dev/null)
+      for cachepath in $cachefiles; do
+        #cachfile=$(basename $cachepath)
+        echo "#----- $cachepath"
+        echo "$(cat $cachedir/$cachepath)"
+      done
+       
+    }
+    gitpushlive_main_cmd "$@"
+    ;;
+  *)
+  
+    exit $DOKKU_NOT_IMPLEMENTED_EXIT
+    ;;
+
+esac
