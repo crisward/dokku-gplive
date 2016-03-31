@@ -1,4 +1,4 @@
-# dokku-gitpushlive
+# dokku-gplive
 
 ## What does it do
 

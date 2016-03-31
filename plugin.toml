@@ -1,4 +1,4 @@
 [plugin]
-description = "dokku gitpushlive plugin"
+description = "dokku gplive plugin"
 version = "0.1.0"
 [plugin.config]
