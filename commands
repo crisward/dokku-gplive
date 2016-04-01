@@ -46,11 +46,14 @@ help_content
       for pluginpath in $plugins; do
         plugin=$(basename $pluginpath)
         case $plugin in
-          mariadb | redis | couchdb | elasticsearch | memcached | mongo | mysql | postgres | rabbitmq | rethinkdb)
-            dokku $plugin:list > $cachedir/$plugin.list &
+          mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
+            # remove the word plugin from the end of the plugin name
+            local dbcmd=${plugin/-plugin/}
+            dokku $dbcmd:list > $cachedir/$dbcmd.list &
           ;;
-          letsencrypt)
-            dokku $plugin:ls > $cachedir/$plugin.list &
+          letsencrypt*)
+            local dbcmd=${plugin/-plugin/}
+            dokku $dbcmd:ls > $cachedir/$dbcmd.list &
           ;;   
         esac
       done
