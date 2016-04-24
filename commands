@@ -42,18 +42,21 @@ help_content
         dokku docker-options $APP > $cachedir/$APP.options &
         dokku urls $APP > $cachedir/$APP.urls &
       done
-      # loop over plugins - list all db's that are installed
-      for pluginpath in $plugins; do
-        plugin=$(basename $pluginpath)
-        case $plugin in
-          mariadb | redis | couchdb | elasticsearch | memcached | mongo | mysql | postgres | rabbitmq | rethinkdb)
-            dokku $plugin:list > $cachedir/$plugin.list &
-          ;;
-          letsencrypt)
-            dokku $plugin:ls > $cachedir/$plugin.list &
-          ;;   
-        esac
-      done
+      # loop over plugins - list all db's that are installed -- skipping as I'm catching this with user-auth trigger
+      # for pluginpath in $plugins; do
+      #   plugin=$(basename $pluginpath)
+      #   case $plugin in
+      #     mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
+      #       # remove the word plugin from the end of the plugin name
+      #       local dbcmd=${plugin/-plugin/}
+      #       dokku $dbcmd:list > $cachedir/$dbcmd.list &
+      #     ;;
+      #     letsencrypt*)
+      #       local dbcmd=${plugin/-plugin/}
+      #       dokku $dbcmd:ls > $cachedir/$dbcmd.list &
+      #     ;;   
+      #   esac
+      # done
       wait
       # loop over cached files, stick together to be processed by server
       cachefiles=$(ls -A $cachedir 2>/dev/null)
@@ -62,7 +65,6 @@ help_content
         echo "#----- $cachepath"
         echo "$(cat $cachedir/$cachepath)"
       done
-       
     }
     gplive_main_cmd "$@"
     ;;

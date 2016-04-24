@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+cmd=$3
+plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
+# runs ie mariadb:list > /home/dokku/mariadb.list for mariadb:create,destroy etc
+# so sync can just read from cache
+gplive_dbupdate_cmd() {
+  sleep 30
+  local typ=${1%:*}
+  local DOKKU_ROOT=$2
+  local plugins=$3
+  local cachedir=$DOKKU_ROOT/.gitpushcache
+  # checks if plugin exists before running command
+  if [[ $plugins =~ "$typ"* ]]; then
+    dokku $typ:list > $cachedir/$typ.list
+  fi
+}
+
+gplive_leupdate_cmd() {
+  sleep 30
+  local DOKKU_ROOT=$1
+  local cachedir=$DOKKU_ROOT/.gitpushcache 
+  dokku letsencrypt:ls > $cachedir/letsencrypt.list
+}
+
+# listens to all commands, only triggers for following commands on following db plugins
+case $cmd in
+  mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
+    if [[ $cmd == *"create" ]] || [[ $cmd == *"destroy" ]] || [[ $cmd == *"link" ]] || [[ $cmd == *"unlink" ]] || [[ $cmd == *"start" ]] || [[ $cmd == *"stop" ]]; then
+      gplive_dbupdate_cmd "$cmd" "$DOKKU_ROOT" "$plugins" &
+    fi
+  ;;
+  letsencrypt*)
+    if [[ $cmd != *":ls" ]] && [[ $plugins =~ "letsencrypt"* ]]; then
+      gplive_leupdate_cmd "$DOKKU_ROOT" &
+    fi
+  ;;
+esac
+
+# always allows
+exit 0
