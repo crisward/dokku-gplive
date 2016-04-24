@@ -9,7 +9,7 @@ set +e
 
 APP="$1"
 APP_ROOT="$DOKKU_ROOT/$APP"
-GITPUSHLIVE_BASE_URL='http://192.168.0.6:3000'
+# GITPUSHLIVE_BASE_URL='http://192.168.0.6:3000'
 
 # collect all data to update gitpushlive
 CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1" || echo "")
