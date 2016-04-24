@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+PLUGIN_BASE_PATH="$PLUGIN_PATH"
+if [[ -n $DOKKU_API_VERSION ]]; then
+  PLUGIN_BASE_PATH="$PLUGIN_ENABLED_PATH"
+fi
+source "$PLUGIN_BASE_PATH/common/functions"
+set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+set +e
+
+APP="$1"
+APP_ROOT="$DOKKU_ROOT/$APP"
+GITPUSHLIVE_BASE_URL='http://192.168.0.6:3000'
+
+# collect all data to update gitpushlive
+CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1" || echo "")
+DOCKER_OPTIONS_DEPLOY=$(cat "$APP_ROOT/DOCKER_OPTIONS_DEPLOY" || echo "")
+DOCKER_OPTIONS_BUILD=$(cat "$APP_ROOT/DOCKER_OPTIONS_BUILD" || echo "")
+DOCKER_OPTIONS_RUN=$(cat "$APP_ROOT/DOCKER_OPTIONS_RUN" || echo "")
+DOMAINS=$(cat "$APP_ROOT/VHOST" || echo "")
+
+#cd "$APP_ROOT"
+BASE_URL=$GITPUSHLIVE_BASE_URL || 'https://stats.gitpushlive.com'
+dokku_log_info1 "Notifying gitpushlive... $GITPUSHLIVE_BASE_URL $1 $2 $3 $4"
+curl "$BASE_URL/deploy" --silent \
+  --data "app[name]=$APP" \
+  --data "app[meta][container_id]=${CONTAINER:0:12}" \
+  --data "app[meta][container_type]=web" \
+  --data "app[meta][status]=running" \
+  --data "app[domains]=$DOMAINS" \
+  --data "app[docker_options][deploy]=$DOCKER_OPTIONS_DEPLOY" \
+  --data "app[docker_options][build]=$DOCKER_OPTIONS_BUILD" \
+  --data "app[docker_options][run]=$DOCKER_OPTIONS_RUN" > /dev/null
+exit 0
+
