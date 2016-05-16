@@ -9,3 +9,9 @@ case "$DOKKU_DISTRO" in
     fi
     ;;
 esac
+
+# remove cron if it already exists
+[ -f /etc/cron.d/gplive ] && rm /etc/cron.d/gplive
+# create cron to run every minute to update stats
+echo "PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin">/etc/cron.d/gplive
+echo "* * * * * root dokku gplive:sendstats>/dev/null">>/etc/cron.d/gplive
