@@ -33,7 +33,7 @@ gplive_sendstats_cmd() {
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
   CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
-  MEMORYUSED=$(free | awk '/buffers\/cache/{printf "%d",100-($4/($3+$4) * 100.0) }')
+  MEMORYUSED=$(free | awk '/buffers\/cache/{printf "%d",100-($4/($3+$4) * 100.0) }') || MEMORYUSED="0"
   DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}') || DISKUSAGE="0" #percentage
   DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
   echo "base = $BASE_URL"
