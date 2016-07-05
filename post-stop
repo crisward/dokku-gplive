@@ -6,4 +6,4 @@ source "$PLUGIN_AVAILABLE_PATH/gplive/functions"
 APP="$1"
 APP_ROOT="$DOKKU_ROOT/$APP"
 
-gplive_updateapp_cmd $APP $APP_ROOT "running"
+gplive_updateapp_cmd $APP $APP_ROOT "stopped"

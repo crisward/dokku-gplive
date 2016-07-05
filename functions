@@ -39,3 +39,33 @@ gplive_sendstats_cmd() {
   echo "base = $BASE_URL"
   curl -H "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$BASE_URL/duocms/api/servers/stats" 
 }
+
+gplive_updateapp_cmd() {
+  declare desc="sends app info to server"
+
+  APP="$1"
+  APP_ROOT="$2"
+  STATUS="$3"
+  # collect all data to update gitpushlive
+  CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1" || echo "")
+  DOCKER_OPTIONS_DEPLOY=$(cat "$APP_ROOT/DOCKER_OPTIONS_DEPLOY" || echo "")
+  DOCKER_OPTIONS_BUILD=$(cat "$APP_ROOT/DOCKER_OPTIONS_BUILD" || echo "")
+  DOCKER_OPTIONS_RUN=$(cat "$APP_ROOT/DOCKER_OPTIONS_RUN" || echo "")
+  DOMAINS=$(cat "$APP_ROOT/VHOST" || echo "")
+
+
+  if [[ -n $DOKKU_API_VERSION ]]; then
+  BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
+  else
+  dokku_log_info1 "Notifying gitpushlive... $BASE_URL"
+  curl "$BASE_URL/duocms/api/dokku" --silent \
+    --data "app[name]=$APP" \
+    --data "app[meta][container_id]=${CONTAINER:0:12}" \
+    --data "app[meta][container_type]=web" \
+    --data "app[meta][status]=$STATUS" \
+    --data "app[domains]=$DOMAINS" \
+    --data "app[docker_options][deploy]=$DOCKER_OPTIONS_DEPLOY" \
+    --data "app[docker_options][build]=$DOCKER_OPTIONS_BUILD" \
+    --data "app[docker_options][run]=$DOCKER_OPTIONS_RUN" > /dev/null
+  exit 0
+}
