@@ -52,11 +52,8 @@ gplive_updateapp_cmd() {
   DOCKER_OPTIONS_BUILD=$(cat "$APP_ROOT/DOCKER_OPTIONS_BUILD" || echo "")
   DOCKER_OPTIONS_RUN=$(cat "$APP_ROOT/DOCKER_OPTIONS_RUN" || echo "")
   DOMAINS=$(cat "$APP_ROOT/VHOST" || echo "")
-
-
-  if [[ -n $DOKKU_API_VERSION ]]; then
   BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
-  else
+
   dokku_log_info1 "Notifying gitpushlive... $BASE_URL"
   curl "$BASE_URL/duocms/api/dokku" --silent \
     --data "app[name]=$APP" \
