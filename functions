@@ -47,13 +47,27 @@ gplive_updateapp_cmd() {
   APP_ROOT="$2"
   STATUS="$3"
   # collect all data to update gitpushlive
-  CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1" || echo "")
-  DOCKER_OPTIONS_DEPLOY=$(cat "$APP_ROOT/DOCKER_OPTIONS_DEPLOY" || echo "")
-  DOCKER_OPTIONS_BUILD=$(cat "$APP_ROOT/DOCKER_OPTIONS_BUILD" || echo "")
-  DOCKER_OPTIONS_RUN=$(cat "$APP_ROOT/DOCKER_OPTIONS_RUN" || echo "")
-  DOMAINS=$(cat "$APP_ROOT/VHOST" || echo "")
+  CONTAINER=""
+  DOCKER_OPTIONS_DEPLOY=""
+  DOCKER_OPTIONS_BUILD=""
+  DOCKER_OPTIONS_RUN=""
+  DOMAINS=""
+  if [ -f "$APP_ROOT/DOCKER_OPTIONS_DEPLOY" ]; then
+    DOCKER_OPTIONS_DEPLOY=$(cat "$APP_ROOT/DOCKER_OPTIONS_DEPLOY")
+  fi
+  if [ -f "$APP_ROOT/DOCKER_OPTIONS_BUILD" ]; then
+    DOCKER_OPTIONS_BUILD=$(cat "$APP_ROOT/DOCKER_OPTIONS_BUILD")
+  fi
+  if [ -f "$APP_ROOT/DOCKER_OPTIONS_RUN" ]; then
+    DOCKER_OPTIONS_RUN=$(cat "$APP_ROOT/DOCKER_OPTIONS_RUN")
+  fi
+  if [ -f "$APP_ROOT/VHOST" ]; then
+    DOMAINS=$(cat "$APP_ROOT/VHOST")
+  fi
+  if [ -f "$APP_ROOT/CONTAINER.web.1" ]; then
+    CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1")
+  fi
   BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
-
   dokku_log_info1 "Notifying gitpushlive... $BASE_URL"
   curl "$BASE_URL/duocms/api/dokku" --silent \
     --data "app[name]=$APP" \
