@@ -19,8 +19,10 @@ DOCKER_OPTIONS_RUN=$(cat "$APP_ROOT/DOCKER_OPTIONS_RUN" || echo "")
 DOMAINS=$(cat "$APP_ROOT/VHOST" || echo "")
 
 #cd "$APP_ROOT"
-BASE_URL=$GITPUSHLIVE_BASE_URL || 'https://gitpushlive.com'
-dokku_log_info1 "Notifying gitpushlive... $GITPUSHLIVE_BASE_URL $1 $2 $3 $4"
+if [[ -n $DOKKU_API_VERSION ]]; then
+BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
+else
+dokku_log_info1 "Notifying gitpushlive... $BASE_URL"
 curl "$BASE_URL/duocms/api/dokku" --silent \
   --data "app[name]=$APP" \
   --data "app[meta][container_id]=${CONTAINER:0:12}" \
