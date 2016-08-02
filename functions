@@ -10,8 +10,10 @@ gplive_main_cmd() {
   local dokku_apps=$(ls -d $DOKKU_ROOT/*/ 2>/dev/null) || (dokku_log_fail "You haven't deployed any applications yet")
   local plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
   # make cach dir
-  local cachedir=$DOKKU_ROOT/.gitpushcache 
+  local cachedir=$DOKKU_ROOT/.gitpushcache
   [ -d $cachedir ] || mkdir $cachedir
+  # empty last cache files
+  rm $cachedir/*
   # loop over apps, getting all docker options and urls asynchronously
   for dokku_app in $dokku_apps; do
     APP=$(basename $dokku_app)
