@@ -47,10 +47,10 @@ gplive_autoupdate_cmd() {
   echo "gplive - checking for updates"
   newversion=$(curl https://raw.githubusercontent.com/crisward/dokku-gplive/master/plugin.toml -s | grep "version.*" | grep -o [0-9.]*)
   currentversion=$(cat $PLUGIN_AVAILABLE_PATH/gplive/plugin.toml | grep "version.*" | grep -o [0-9.]*)
-  if newversion==currentversion ; then
+  if [ "$newversion" == "$currentversion" ] ; then
     echo "already up to date"
   else
-    echo "updating to @newversion"
+    echo "updating to $newversion"
     cd $PLUGIN_AVAILABLE_PATH/gplive/ && git pull origin master
   fi
 }
