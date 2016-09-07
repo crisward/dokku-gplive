@@ -38,7 +38,6 @@ help_content
 
   gplive:sendstats)
     gplive_sendstats_cmd "$@"
-    gplive_autoupdate_cmd "$@"
     ;;
   
   *)
