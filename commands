@@ -32,10 +32,6 @@ help_content
     gplive_main_cmd "$@"
     ;;
 
-  gplive:update)
-    gplive_autoupdate_cmd "$@"
-    ;;
-
   gplive:sendstats)
     gplive_sendstats_cmd "$@"
     ;;
