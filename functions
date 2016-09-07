@@ -13,7 +13,7 @@ gplive_main_cmd() {
   local cachedir=$DOKKU_ROOT/.gitpushcache
   [ -d $cachedir ] || mkdir $cachedir
   # empty last cache files
-  rm $cachedir/*
+  [ -d $cachedir ] && rm $cachedir/*
   # loop over apps, getting all docker options and urls asynchronously
   for dokku_app in $dokku_apps; do
     APP=$(basename $dokku_app)
@@ -40,6 +40,19 @@ gplive_sendstats_cmd() {
   DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
   echo "base = $BASE_URL"
   curl -H "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$BASE_URL/duocms/api/servers/stats" 
+}
+
+gplive_autoupdate_cmd() {
+  declare desc="self update"
+  echo "gplive - checking for updates"
+  newversion=$(curl https://raw.githubusercontent.com/crisward/dokku-gplive/master/plugin.toml -s | grep "version.*" | grep -o [0-9.]*)
+  currentversion=$(cat $PLUGIN_AVAILABLE_PATH/gplive/plugin.toml | grep "version.*" | grep -o [0-9.]*)
+  if newversion==currentversion ; then
+    echo "already up to date"
+  else
+    echo "updating to @newversion"
+    cd $PLUGIN_AVAILABLE_PATH/gplive/ && git pull origin master
+  fi
 }
 
 gplive_updateapp_cmd() {

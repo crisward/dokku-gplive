@@ -10,6 +10,7 @@ case "$1" in
       cat<<help_content
     gplive, returns data about all apps
     gplive:sendstats, send basis server stats to gitpushlive   
+    gplive:update, updates plugin
 help_content
     }
 
@@ -30,12 +31,17 @@ help_content
   gplive)
     gplive_main_cmd "$@"
     ;;
-  
+
+  gplive:update)
+    gplive_autoupdate_cmd "$@"
+    ;;
+
   gplive:sendstats)
     gplive_sendstats_cmd "$@"
+    gplive_autoupdate_cmd "$@"
     ;;
-  *)
   
+  *)
     exit $DOKKU_NOT_IMPLEMENTED_EXIT
     ;;
 
