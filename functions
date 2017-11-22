@@ -13,7 +13,7 @@ gplive_main_cmd() {
   local cachedir=$DOKKU_ROOT/.gitpushcache
   [ -d $cachedir ] || mkdir $cachedir
   # empty last cache files
-  [ -d $cachedir ] && rm $cachedir/*.urls && rm $cachedir/*.options 
+  [ -d $cachedir ] && rm -f $cachedir/*.urls && rm -f $cachedir/*.options 
   # loop over apps, getting all docker options and urls asynchronously
   for dokku_app in $dokku_apps; do
     APP=$(basename $dokku_app)
