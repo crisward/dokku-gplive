@@ -28,7 +28,7 @@ gplive_main_cmd() {
     echo "#----- $cachepath"
     echo "$(cat $cachedir/$cachepath)"
   done
-  echo "#----- apps"
+  echo "#----- apps.list"
   dokku ls --quiet
 }
 
