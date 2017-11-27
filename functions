@@ -29,7 +29,7 @@ gplive_main_cmd() {
     echo "$(cat $cachedir/$cachepath)"
   done
   echo "#----- apps.list"
-  dokku ls --quiet
+  dokku ls
 }
 
 gplive_sendstats_cmd() {
