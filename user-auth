@@ -24,18 +24,19 @@ gplive_leupdate_cmd() {
 }
 
 # listens to all commands, only triggers for following commands on following db plugins
-case $cmd in
-  mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
-    if [[ $cmd == *"create" ]] || [[ $cmd == *"destroy" ]] || [[ $cmd == *"link" ]] || [[ $cmd == *"unlink" ]] || [[ $cmd == *"start" ]] || [[ $cmd == *"stop" ]] || [[ $cmd == *"expose" ]] || [[ $cmd == *"unexpose" ]]; then
-      gplive_dbupdate_cmd "$cmd" "$DOKKU_ROOT" "$plugins" &
-    fi
-  ;;
-  letsencrypt*)
-    if [[ $cmd != *":ls" ]] && [[ $plugins =~ "letsencrypt"* ]]; then
-      gplive_leupdate_cmd "$DOKKU_ROOT" &
-    fi
-  ;;
-esac
+# disabled for now
+# case $cmd in
+#   mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
+#     if [[ $cmd == *"create" ]] || [[ $cmd == *"destroy" ]] || [[ $cmd == *"link" ]] || [[ $cmd == *"unlink" ]] || [[ $cmd == *"start" ]] || [[ $cmd == *"stop" ]] || [[ $cmd == *"expose" ]] || [[ $cmd == *"unexpose" ]]; then
+#       gplive_dbupdate_cmd "$cmd" "$DOKKU_ROOT" "$plugins" &
+#     fi
+#   ;;
+#   letsencrypt*)
+#     if [[ $cmd != *":ls" ]] && [[ $plugins =~ "letsencrypt"* ]]; then
+#       gplive_leupdate_cmd "$DOKKU_ROOT" &
+#     fi
+#   ;;
+# esac
 
 # always allows
 exit 0
