@@ -1,42 +1,69 @@
 #!/usr/bin/env bash
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 cmd=$3
+appname=$4
 plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # runs ie mariadb:list > /home/dokku/mariadb.list for mariadb:create,destroy etc
 # so sync can just read from cache
 gplive_dbupdate_cmd() {
-  sleep 30
   local typ=${1%:*}
   local DOKKU_ROOT=$2
   local plugins=$3
-  local cachedir=$DOKKU_ROOT/.gitpushcache
+  local appname=$4
+  local parent_pid=$5
   # checks if plugin exists before running command
   if [[ $plugins =~ "$typ"* ]]; then
-    dokku $typ:list > $cachedir/$typ.list
+    timeout 30s tail --pid=$parent_pid -f /dev/null # wait for parent process to exit 
+    if [ -f "$SCRIPT_DIR/gplive.config" ];then
+      GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+    fi
+    local certs=$(dokku letsencrypt:ls 2> /dev/null || dokku letsencrypt:list)
+    [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+    BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+    local container=$(dokku $typ:info $appname --id) # container id
+    local status=$(dokku $typ:info $appname --status) # status
+    for URL in "${array[@]}"
+    do
+      curl "$URL/duocms/api/dokku/service" --silent \
+        --data "name=$appname" \
+        --data "type=$typ" \
+        --data "container_id=${container:0:12}" \
+        --data "status=$status"  > /dev/null
+    done 
   fi
 }
 
+# sends cert list to server after each enable / revoke
 gplive_leupdate_cmd() {
-  sleep 30
-  local DOKKU_ROOT=$1
-  local cachedir=$DOKKU_ROOT/.gitpushcache 
-  dokku letsencrypt:ls > $cachedir/letsencrypt.list
+  local parent_pid=$1
+  timeout 30s tail --pid=$parent_pid -f /dev/null # wait for parent process to exit
+  if [ -f "$SCRIPT_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  fi
+  local certs=$(dokku letsencrypt:ls 2> /dev/null || dokku letsencrypt:list)
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  for URL in "${array[@]}"
+  do
+    curl "$URL/duocms/api/dokku/certs" --silent \
+      --data "certs=$certs" > /dev/null
+  done 
 }
 
 # listens to all commands, only triggers for following commands on following db plugins
-# disabled for now
-# case $cmd in
-#   mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
-#     if [[ $cmd == *"create" ]] || [[ $cmd == *"destroy" ]] || [[ $cmd == *"link" ]] || [[ $cmd == *"unlink" ]] || [[ $cmd == *"start" ]] || [[ $cmd == *"stop" ]] || [[ $cmd == *"expose" ]] || [[ $cmd == *"unexpose" ]]; then
-#       gplive_dbupdate_cmd "$cmd" "$DOKKU_ROOT" "$plugins" &
-#     fi
-#   ;;
-#   letsencrypt*)
-#     if [[ $cmd != *":ls" ]] && [[ $plugins =~ "letsencrypt"* ]]; then
-#       gplive_leupdate_cmd "$DOKKU_ROOT" &
-#     fi
-#   ;;
-# esac
+case $cmd in
+  mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
+    if [[ $cmd == *"create" ]] || [[ $cmd == *"destroy" ]] || [[ $cmd == *"link" ]] || [[ $cmd == *"unlink" ]] || [[ $cmd == *"start" ]] || [[ $cmd == *"stop" ]] || [[ $cmd == *"expose" ]] || [[ $cmd == *"unexpose" ]]; then
+      gplive_dbupdate_cmd "$cmd" "$DOKKU_ROOT" "$plugins" "$appname" "$PPID" &
+    fi
+  ;;
+  letsencrypt*)
+    if [[ $cmd == "letsencrypt" ]] || [[ $cmd == *"revoke" ]] || [[ $cmd == *"enable" ]]; then
+      gplive_leupdate_cmd "$PPID" &
+    fi
+  ;;
+esac
 
 # always allows
 exit 0

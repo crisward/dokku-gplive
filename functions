@@ -99,17 +99,16 @@ gplive_sendstats_cmd() {
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
+  CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
+  TOTALMEM=$(cat /proc/meminfo | grep MemTotal: | awk '{printf $2}')
+  MEMFREE=$(cat /proc/meminfo | grep Inactive: | awk '{printf $2}')
+  MEMORYUSED=$(awk -v tm="$TOTALMEM" -v mf="$MEMFREE" "BEGIN {a=mf / tm * 100; print a}") # percentage
+  DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}')
+  : ${DISKUSAGE:="0"}
+  DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
   for URL in "${array[@]}"
   do
-    CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
-    CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
-    TOTALMEM=$(cat /proc/meminfo | grep MemTotal: | awk '{printf $2}')
-    MEMFREE=$(cat /proc/meminfo | grep Inactive: | awk '{printf $2}')
-    MEMORYUSED=$(awk -v tm="$TOTALMEM" -v mf="$MEMFREE" "BEGIN {a=mf / tm * 100; print a}") # percentage
-    DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}')
-    : ${DISKUSAGE:="0"}
-    DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
-    echo "base = $URL"
     newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
   done
   if test `find "$PLUGIN_AVAILABLE_PATH/gplive/plugin.toml" -mmin +60` ;then #only check once per hour, if file has recently updated
