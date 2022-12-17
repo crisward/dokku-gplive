@@ -9,6 +9,7 @@ gplive_main_cmd() {
   local cachefiles
   local dokku_apps=$(ls -d $DOKKU_ROOT/*/ 2>/dev/null) || (dokku_log_fail "You haven't deployed any applications yet")
   local plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
+  local dokkuversion=$(dokku version)
   # make cach dir
   local cachedir=$DOKKU_ROOT/.gitpushcache
   [ -d $cachedir ] || mkdir $cachedir
@@ -17,8 +18,14 @@ gplive_main_cmd() {
   # loop over apps, getting all docker options and urls asynchronously
   for dokku_app in $dokku_apps; do
     APP=$(basename $dokku_app)
-    dokku docker-options $APP > $cachedir/$APP.options &
-    dokku urls $APP > $cachedir/$APP.urls &
+    if [ "$(printf '%s\n' "0.8.0" "$dokkuversion" | sort -V | head -n1)" = "0.8.0" ]
+    then
+      dokku docker-options:report $APP > $cachedir/$APP.options &
+      dokku urls $APP > $cachedir/$APP.urls &
+    else 
+      dokku docker-options $APP > $cachedir/$APP.options &
+      dokku urls $APP > $cachedir/$APP.urls &
+    fi
   done
   wait
   # loop over cached files, stick together to be processed by server
