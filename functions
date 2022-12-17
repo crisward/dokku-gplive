@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 gplive_main_cmd() {
   declare desc="outputs data for syncing with gplive"
@@ -9,7 +10,7 @@ gplive_main_cmd() {
   local cachefiles
   local dokku_apps=$(ls -d $DOKKU_ROOT/*/ 2>/dev/null) || (dokku_log_fail "You haven't deployed any applications yet")
   local plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
-  local dokkuversion=$(dokku version)
+  local dokkuversion=$(dokku version | grep -Po '(?=\d{1,2}\.)(\d+)\.\d+')
   # make cach dir
   local cachedir=$DOKKU_ROOT/.gitpushcache
   [ -d $cachedir ] || mkdir $cachedir
@@ -36,26 +37,81 @@ gplive_main_cmd() {
     echo "$(cat $cachedir/$cachepath)"
   done
   echo "#----- apps.list"
-  dokku ls
+  dokku apps:list
+}
+
+gplive_list_cmd(){
+  declare desc="list server domains"
+  if [ -f "$SCRIPT_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  fi
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  for URL in "${array[@]}"
+  do
+    echo "$URL"
+  done 
+}
+
+gplive_add_cmd(){
+  declare desc="add server domain"
+  if [ -f "$SCRIPT_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  fi
+  regex='^https?://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]$'
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  URL="$2"
+  # check if new domain exists in existing
+  if [[ "$BASE_URL" == *"$URL"* ]]; then
+    echo "That domain has already been added"
+  elif [[ $URL =~ $regex ]]; then 
+    NEWURL="$BASE_URL $URL" # append
+    echo "$NEWURL" > "$SCRIPT_DIR/gplive.config"
+  else 
+    echo "That does not appear to be a valid domain. Make sure it has a protocol and full domain eg https://gitpushlive.com"
+  fi
+}
+
+gplive_remove_cmd(){
+  declare desc="remove server domain"
+  if [ -f "$SCRIPT_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  fi
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  REMOVE="$2"
+  NEWURLS=""
+  for URL in "${array[@]}"
+  do
+    if [[ "$REMOVE" == *"$URL"* ]]; then
+      echo "removing $URL"
+    else 
+      NEWURLS="$NEWURLS $URL"
+    fi
+  done 
+  echo "$NEWURL" > "$SCRIPT_DIR/gplive.config"
 }
 
 gplive_sendstats_cmd() {
   declare desc="sends simple stats to server"
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
-  CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
-  CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
-  if [[ `lsb_release -rs` == "16.04" || `lsb_release -rs` == "18.04" ]]
-  then
-    MEMORYUSED=$(free | awk '/Mem:/{printf "%d",100-(($7/$2) * 100.0) }') #$2 = total $7=available
-  else
-    MEMORYUSED=$(free | awk '/buffers\/cache/{printf "%d",100-($4/($3+$4) * 100.0) }')
+  if [ -f "$SCRIPT_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
   fi
-  : ${MEMORYUSED:="0"}
-  DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}')
-  : ${DISKUSAGE:="0"}
-  DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
-  echo "base = $BASE_URL"
-  newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$BASE_URL/duocms/api/servers/stats")
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  for URL in "${array[@]}"
+  do
+    CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
+    CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
+    TOTALMEM=$(cat /proc/meminfo | grep MemTotal: | awk '{printf $2}')
+    MEMFREE=$(cat /proc/meminfo | grep Inactive: | awk '{printf $2}')
+    MEMORYUSED=$(awk -v tm="$TOTALMEM" -v mf="$MEMFREE" "BEGIN {a=mf / tm * 100; print a}") # percentage
+    DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}')
+    : ${DISKUSAGE:="0"}
+    DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
+    echo "base = $URL"
+    newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
+  done
   if test `find "$PLUGIN_AVAILABLE_PATH/gplive/plugin.toml" -mmin +60` ;then #only check once per hour, if file has recently updated
     currentversion=$(cat $PLUGIN_AVAILABLE_PATH/gplive/plugin.toml | grep "version.*" | grep -o [0-9.]*)
     if [ "$newversion" == "$currentversion" ] ; then
@@ -68,7 +124,7 @@ gplive_sendstats_cmd() {
 }
 
 gplive_updateapp_cmd() {
-  declare desc="sends app info to server"
+  declare desc="sends app info to servers"
 
   APP="$1"
   APP_ROOT="$2"
@@ -95,15 +151,23 @@ gplive_updateapp_cmd() {
     CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1")
   fi
   BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
-  dokku_log_info1 "Notifying gitpushlive... $BASE_URL"
-  curl "$BASE_URL/duocms/api/dokku" --silent \
-    --data "app[name]=$APP" \
-    --data "app[meta][container_id]=${CONTAINER:0:12}" \
-    --data "app[meta][container_type]=web" \
-    --data "app[meta][status]=$STATUS" \
-    --data "app[domains]=$DOMAINS" \
-    --data "app[docker_options][deploy]=$DOCKER_OPTIONS_DEPLOY" \
-    --data "app[docker_options][build]=$DOCKER_OPTIONS_BUILD" \
-    --data "app[docker_options][run]=$DOCKER_OPTIONS_RUN" > /dev/null
+  if [ -f "$SCRIPT_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  fi
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  for URL in "${array[@]}"
+  do
+    dokku_log_info1 "Notifying gitpushlive... $URL"
+    curl "$URL/duocms/api/dokku" --silent \
+      --data "app[name]=$APP" \
+      --data "app[meta][container_id]=${CONTAINER:0:12}" \
+      --data "app[meta][container_type]=web" \
+      --data "app[meta][status]=$STATUS" \
+      --data "app[domains]=$DOMAINS" \
+      --data "app[docker_options][deploy]=$DOCKER_OPTIONS_DEPLOY" \
+      --data "app[docker_options][build]=$DOCKER_OPTIONS_BUILD" \
+      --data "app[docker_options][run]=$DOCKER_OPTIONS_RUN" > /dev/null
+  done 
   exit 0
 }

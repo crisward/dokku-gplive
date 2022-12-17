@@ -35,7 +35,19 @@ help_content
   gplive:sendstats)
     gplive_sendstats_cmd "$@"
     ;;
+
+  gplive:list)
+    gplive_list_cmd "$@"
+    ;;
+
+  gplive:add)
+    gplive_add_cmd "$@"
+    ;;
   
+  gplive:remove)
+    gplive_remove_cmd "$@"
+    ;;
+
   *)
     exit $DOKKU_NOT_IMPLEMENTED_EXIT
     ;;
