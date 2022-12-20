@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+GPCONFIG_DIR="$DOKKU_ROOT/.gitpushcache"
 
 gplive_main_cmd() {
   declare desc="outputs data for syncing with gplive"
@@ -42,8 +42,8 @@ gplive_main_cmd() {
 
 gplive_list_cmd(){
   declare desc="list server domains"
-  if [ -f "$SCRIPT_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -55,8 +55,8 @@ gplive_list_cmd(){
 
 gplive_add_cmd(){
   declare desc="add server domain"
-  if [ -f "$SCRIPT_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
   fi
   regex='^https?://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]$'
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
@@ -66,7 +66,7 @@ gplive_add_cmd(){
     echo "That domain has already been added"
   elif [[ $URL =~ $regex ]]; then 
     NEWURL="$BASE_URL $URL" # append
-    echo "$NEWURL" > "$SCRIPT_DIR/gplive.config"
+    echo "$NEWURL" > "$GPCONFIG_DIR/gplive.config"
   else 
     echo "That does not appear to be a valid domain. Make sure it has a protocol and full domain eg https://gitpushlive.com"
   fi
@@ -74,8 +74,8 @@ gplive_add_cmd(){
 
 gplive_remove_cmd(){
   declare desc="remove server domain"
-  if [ -f "$SCRIPT_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -89,13 +89,13 @@ gplive_remove_cmd(){
       NEWURLS="$NEWURLS $URL"
     fi
   done 
-  echo "$NEWURL" > "$SCRIPT_DIR/gplive.config"
+  echo "$NEWURL" > "$GPCONFIG_DIR/gplive.config"
 }
 
 gplive_sendstats_cmd() {
   declare desc="sends simple stats to server"
-  if [ -f "$SCRIPT_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -151,8 +151,8 @@ gplive_updateapp_cmd() {
     CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1")
   fi
   BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
-  if [ -f "$SCRIPT_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
