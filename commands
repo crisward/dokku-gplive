@@ -51,6 +51,15 @@ help_content
   gplive:backup)
     gplive_backup_cmd "$@"
     ;;   
+  gplive:addbackup)
+    gplive_addbackup_cmd "$@"
+    ;;  
+  gplive:removebackup)
+    gplive_removebackup_cmd "$@"
+    ;; 
+  gplive:listbackups)
+    gplive_listbackups_cmd "$@"
+    ;;
   *)
     exit $DOKKU_NOT_IMPLEMENTED_EXIT
     ;;

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common-functions"
 GPCONFIG_DIR="$DOKKU_ROOT/.gitpushcache"
 
 gplive_main_cmd() {
@@ -185,7 +186,7 @@ gplive_configbackups_cmd(){
   echo "$bucket" > "$GPCONFIG_DIR/BACKUP_BUCKET"
   echo "$dir" > "$GPCONFIG_DIR/BACKUP_DIR"
   echo "$hour" > "$GPCONFIG_DIR/BACKUP_HOUR"
-  echo "Backup Setting Updated.\n"
+  echo "Backup Setting Updated"
 }
 
 gplive_backup_cmd(){
@@ -194,7 +195,7 @@ gplive_backup_cmd(){
     GITPUSHLIVE_BACKUP_HOUR=$(<"$GPCONFIG_DIR/BACKUP_HOUR")
   fi
   # check if hour is current hour
-  local currentHour = $(date +%H)
+  local currentHour=$(date +%H)
   if [ $currentHour == $GITPUSHLIVE_BACKUP_HOUR ]; then
     # get backup settings
     if [ -f "$GPCONFIG_DIR/BACKUP_ID" ] && [ -f "$GPCONFIG_DIR/BACKUP_KEY" ] && [ -f "$GPCONFIG_DIR/BACKUP_BUCKET" ] &&  [ -f "$GPCONFIG_DIR/BACKUP_DIR" ];then
@@ -202,11 +203,76 @@ gplive_backup_cmd(){
       GITPUSHLIVE_BACKUP_KEY=$(<"$GPCONFIG_DIR/BACKUP_KEY")
       GITPUSHLIVE_BACKUP_BUCKET=$(<"$GPCONFIG_DIR/BACKUP_BUCKET")
       GITPUSHLIVE_BACKUP_DIR=$(<"$GPCONFIG_DIR/BACKUP_DIR")
+      # get backups
+    
+      # create and run each one
+
+      # tell gitpush about each backup
+
     fi
-    # get backups
+  fi
+}
 
-    # create and run each one
+gplive_addbackup_cmd(){
+  local type=$2
+  local name=$3
+  local GITPUSHLIVE_BACKUPS=""
+  if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
+    GITPUSHLIVE_BACKUPS=$(<"$GPCONFIG_DIR/BACKUPS")
+  fi
+  if [ "$type" = "volume" ];then
+    [ -d "$name" ] || dokku_log_fail "$type $name does not exist"
+  else
+    # check plugin is installed
+    plugn list | awk '{print $1}' | grep -q "^${type}$" ||  dokku_log_fail "$type is not an installed plugin" 
+    # check name is valid
+    is_valid_service_name "$name" || dokku_log_fail "Please specify a valid name for the service. Valid characters are: [A-Za-z0-9_]+"
+    # check serice exists
+    [ -d "/var/lib/dokku/services/$type/$name" ] || dokku_log_fail "$type $name does not exist"    
+  fi
+  # check if new backup exists in existing
+  if [[ "$GITPUSHLIVE_BACKUPS" == *"$type $name"* ]]; then
+    dokku_log_fail "That backup has already been added"
+  else
+    echo "$type $name" >> "$GPCONFIG_DIR/BACKUPS"
+  fi
 
-    # tell gitpush about each backup
+  echo "$type $name has been added to the scheduled backups"
+}
+
+
+gplive_removebackup_cmd(){
+  local type=$2
+  local name=$3
+  local GITPUSHLIVE_BACKUPS=""
+  if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
+    GITPUSHLIVE_BACKUPS=$(<"$GPCONFIG_DIR/BACKUPS")
+  fi
+  if [ "$type" = "volume" ];then
+    [ -d "$name" ] || dokku_log_fail "$type $name does not exist"
+  else
+    plugn list | awk '{print $1}' | grep -q "^${type}$" || dokku_log_fail "$type is not an installed plugin" 
+    is_valid_service_name "$name" || dokku_log_fail "Please specify a valid name for the service. Valid characters are: [A-Za-z0-9_]+"
+  fi
+  local entry="$type $name"
+  if [[ "$GITPUSHLIVE_BACKUPS" == *"$entry"* ]]; then
+    sed -i "s,$entry,,g" "$GPCONFIG_DIR/BACKUPS" # remove backup
+    sed -i '/^$/d' "$GPCONFIG_DIR/BACKUPS" # remove blank lines
+  else
+    dokku_log_fail "That backup does not exist"
+  fi
+  echo "$entry has been removed from the scheduled backups"
+}
+
+gplive_listbackups_cmd(){
+  local GITPUSHLIVE_BACKUPS=""
+  if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
+    GITPUSHLIVE_BACKUPS=$(<"$GPCONFIG_DIR/BACKUPS")
+  fi
+  if [ "$GITPUSHLIVE_BACKUPS" = "" ];then 
+    dokku_log_warn "There are no backups setup"
+  else 
+    dokku_log_info2_quiet "Backups"
+    echo "$GITPUSHLIVE_BACKUPS"
   fi
 }

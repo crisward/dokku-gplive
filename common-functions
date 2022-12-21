@@ -1,0 +1,10 @@
+is_valid_service_name() {
+  declare desc="validate a service name"
+  declare SERVICE="$1"
+  [[ -z "$SERVICE" ]] && return 1
+
+  if [[ "$SERVICE" =~ ^[A-Za-z0-9_-]+$ ]]; then
+    return 0
+  fi
+  return 1
+}
