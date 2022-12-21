@@ -14,11 +14,12 @@ help_content
     }
 
     if [[ $1 = "gplive:help" ]] ; then
-        echo -e 'Usage: dokku gplive'
-        echo 'gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
-        echo 'gplive:configbackups, configures the backup settings, run from gitpushlive.com'
-        echo 'gplive:addbackup [type] [name], adds a volume or service to the backup script'
-        echo 'gplive:removebackup [type] [name], removes a volume or service from the backup script'
+        echo -e 'Usage: dokku gplive:command '
+        echo ''
+        echo '  gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
+        echo '  gplive:configbackups, configures the backup settings, run from gitpushlive.com'
+        echo '  gplive:addbackup [type] [name], adds a volume or service to the backup script'
+        echo '  gplive:removebackup [type] [name], removes a volume or service from the backup script'
     else
         help_content_func
     fi
