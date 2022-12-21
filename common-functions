@@ -12,3 +12,22 @@ is_valid_service_name() {
 faketty() {
   script -qefc "$(printf "%q " "$@")" /dev/null
 }
+
+backupNotify(){
+  local GPCONFIG_DIR=$1
+  local name=$2
+  local type=$3
+  local status=$4
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
+  fi
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  for URL in "${array[@]}"
+  do
+    curl "$URL/duocms/api/dokku/backup" --silent \
+    --data "name=$name" \
+    --data "type=$type" \
+    --data "status=$status" > /dev/null
+  done
+}

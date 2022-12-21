@@ -212,7 +212,6 @@ gplive_backup_cmd(){
     GITPUSHLIVE_BACKUP_DIR=$(<"$GPCONFIG_DIR/BACKUP_DIR")
     # get backups
     if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
-      # GITPUSHLIVE_BACKUPS=$(<"$GPCONFIG_DIR/BACKUPS")
       trap "rm -rf /tmp/gplbackups/ > /dev/null" EXIT # remove temp dir
       while read -r line
       do
@@ -228,17 +227,11 @@ gplive_backup_cmd(){
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
             -v "${name}:/backup/" \
             amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir/ --quiet
-
-            curl "$URL/duocms/api/dokku/backup" --silent \
-            --data "name=$name" \
-            --data "type=$type" \
-            --data "status=success" > /dev/null
+            # send successful backups to gitpush
+            backupNotify $GPCONFIG_DIR $name $type "success"
           else 
-            # send failed backup to gitpush?
-            curl "$URL/duocms/api/dokku/backup" --silent \
-            --data "name=$name" \
-            --data "type=$type" \
-            --data "status=failed" > /dev/null
+            # send failed backup to gitpush
+            backupNotify $GPCONFIG_DIR $name $type "failed"
           fi
         else 
           if [ -d "/var/lib/dokku/services/$type/$name" ]; then # check it exists
@@ -251,16 +244,11 @@ gplive_backup_cmd(){
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
             -v "$backupdir:/backup/" \
             amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename --quiet
-            curl "$URL/duocms/api/dokku/backup" --silent \
-            --data "name=$name" \
-            --data "type=$type" \
-            --data "status=success" > /dev/null
+            # send successful backups to gitpush
+            backupNotify $GPCONFIG_DIR $name $type "success"
           else 
-            # send failed backup to gitpush?
-            curl "$URL/duocms/api/dokku/backup" --silent \
-            --data "name=$name" \
-            --data "type=$type" \
-            --data "status=failed" > /dev/null
+            # send failed backups to gitpush
+            backupNotify $GPCONFIG_DIR $name $type "failed"
           fi
         fi 
         # tell gitpush about each backup
