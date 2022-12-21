@@ -8,21 +8,17 @@ case "$1" in
     help_content_func () {
       declare desc="return help_content string"
       cat<<help_content
-    gplive, returns data about all apps
-    gplive:sendstats, send basis server stats to gitpushlive   
-    gplive:update, updates plugin
+    gplive, Used to sync stats to gitpushlive.com
+
 help_content
     }
 
     if [[ $1 = "gplive:help" ]] ; then
         echo -e 'Usage: dokku gplive'
-        echo ''
-        echo 'Gets all the data from an app or all apps for syncing with gplive.com'
-        echo ''
-        echo 'Example:'
-        echo ''
-        echo '$ dokku gplive'
-        echo ''
+        echo 'gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
+        echo 'gplive:configbackups, configures the backup settings, run from gitpushlive.com'
+        echo 'gplive:addbackup [type] [name], adds a volume or service to the backup script'
+        echo 'gplive:removebackup [type] [name], removes a volume or service from the backup script'
     else
         help_content_func
     fi
@@ -48,6 +44,12 @@ help_content
     gplive_remove_cmd "$@"
     ;;
 
+  gplive:configbackups)
+    gplive_configbackups_cmd "$@"
+    ;;
+  gplive:backup)
+    gplive_backup_cmd "$@"
+    ;;   
   *)
     exit $DOKKU_NOT_IMPLEMENTED_EXIT
     ;;

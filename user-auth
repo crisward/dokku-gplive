@@ -15,8 +15,8 @@ gplive_dbupdate_cmd() {
   # checks if plugin exists before running command
   if [[ $plugins =~ "$typ"* ]]; then
     timeout 30s tail --pid=$parent_pid -f /dev/null # wait for parent process to exit 
-    if [ -f "$SCRIPT_DIR/gplive.config" ];then
-      GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+    if [ -f "$SCRIPT_DIR/URLS" ];then
+      GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/URLS")
     fi
     local certs=$(dokku letsencrypt:ls 2> /dev/null || dokku letsencrypt:list)
     [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
@@ -38,8 +38,8 @@ gplive_dbupdate_cmd() {
 gplive_leupdate_cmd() {
   local parent_pid=$1
   timeout 30s tail --pid=$parent_pid -f /dev/null # wait for parent process to exit
-  if [ -f "$SCRIPT_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/gplive.config")
+  if [ -f "$SCRIPT_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/URLS")
   fi
   local certs=$(dokku letsencrypt:ls 2> /dev/null || dokku letsencrypt:list)
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL

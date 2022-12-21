@@ -12,7 +12,7 @@ gplive_main_cmd() {
   local plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
   local dokkuversion=$(dokku version | grep -Po '(?=\d{1,2}\.)(\d+)\.\d+')
   # make cach dir
-  local cachedir=$DOKKU_ROOT/.gitpushcache
+  local cachedir=$GPCONFIG_DIR
   [ -d $cachedir ] || mkdir $cachedir
   # empty last cache files
   [ -d $cachedir ] && rm -f $cachedir/*.urls && rm -f $cachedir/*.options 
@@ -42,8 +42,8 @@ gplive_main_cmd() {
 
 gplive_list_cmd(){
   declare desc="list server domains"
-  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -55,8 +55,8 @@ gplive_list_cmd(){
 
 gplive_add_cmd(){
   declare desc="add server domain"
-  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   regex='^https?://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]$'
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
@@ -66,7 +66,7 @@ gplive_add_cmd(){
     echo "That domain has already been added"
   elif [[ $URL =~ $regex ]]; then 
     NEWURL="$BASE_URL $URL" # append
-    echo "$NEWURL" > "$GPCONFIG_DIR/gplive.config"
+    echo "$NEWURL" > "$GPCONFIG_DIR/URLS"
   else 
     echo "That does not appear to be a valid domain. Make sure it has a protocol and full domain eg https://gitpushlive.com"
   fi
@@ -74,8 +74,8 @@ gplive_add_cmd(){
 
 gplive_remove_cmd(){
   declare desc="remove server domain"
-  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -89,13 +89,14 @@ gplive_remove_cmd(){
       NEWURLS="$NEWURLS $URL"
     fi
   done 
-  echo "$NEWURL" > "$GPCONFIG_DIR/gplive.config"
+  # not sure this is working, needes testing
+  echo "$NEWURL" > "$GPCONFIG_DIR/URLS"
 }
 
 gplive_sendstats_cmd() {
   declare desc="sends simple stats to server"
-  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -111,15 +112,15 @@ gplive_sendstats_cmd() {
   do
     newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
   done
-  if test `find "$PLUGIN_AVAILABLE_PATH/gplive/plugin.toml" -mmin +60` ;then #only check once per hour, if file has recently updated
-    currentversion=$(cat $PLUGIN_AVAILABLE_PATH/gplive/plugin.toml | grep "version.*" | grep -o [0-9.]*)
-    if [ "$newversion" == "$currentversion" ] ; then
-      echo "already up to date"
-    else
-      echo "updating to $newversion"
-      cd $PLUGIN_AVAILABLE_PATH/gplive/ && git pull origin master
-    fi
-  fi
+  # if test `find "$PLUGIN_AVAILABLE_PATH/gplive/plugin.toml" -mmin +60` ;then #only check once per hour, if file has recently updated
+  #   currentversion=$(cat $PLUGIN_AVAILABLE_PATH/gplive/plugin.toml | grep "version.*" | grep -o [0-9.]*)
+  #   if [ "$newversion" == "$currentversion" ] ; then
+  #     echo "already up to date"
+  #   else
+  #     echo "updating to $newversion"
+  #     cd $PLUGIN_AVAILABLE_PATH/gplive/ && git pull origin master
+  #   fi
+  # fi
 }
 
 gplive_updateapp_cmd() {
@@ -150,8 +151,8 @@ gplive_updateapp_cmd() {
     CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1")
   fi
   BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
-  if [ -f "$GPCONFIG_DIR/gplive.config" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/gplive.config")
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -169,4 +170,43 @@ gplive_updateapp_cmd() {
       --data "app[docker_options][run]=$DOCKER_OPTIONS_RUN" > /dev/null
   done 
   exit 0
+}
+
+gplive_configbackups_cmd(){
+  declare desc="config backup settings"
+  local id="$2"
+  local key="$3"
+  local bucket="$4"
+  local dir="$5"
+  local hour="$6"
+  # test before saving
+  echo "$id" > "$GPCONFIG_DIR/BACKUP_ID"
+  echo "$key" > "$GPCONFIG_DIR/BACKUP_KEY"
+  echo "$bucket" > "$GPCONFIG_DIR/BACKUP_BUCKET"
+  echo "$dir" > "$GPCONFIG_DIR/BACKUP_DIR"
+  echo "$hour" > "$GPCONFIG_DIR/BACKUP_HOUR"
+  echo "Backup Setting Updated.\n"
+}
+
+gplive_backup_cmd(){
+  # get config
+  if [ -f "$GPCONFIG_DIR/BACKUP_HOUR" ];then
+    GITPUSHLIVE_BACKUP_HOUR=$(<"$GPCONFIG_DIR/BACKUP_HOUR")
+  fi
+  # check if hour is current hour
+  local currentHour = $(date +%H)
+  if [ $currentHour == $GITPUSHLIVE_BACKUP_HOUR ]; then
+    # get backup settings
+    if [ -f "$GPCONFIG_DIR/BACKUP_ID" ] && [ -f "$GPCONFIG_DIR/BACKUP_KEY" ] && [ -f "$GPCONFIG_DIR/BACKUP_BUCKET" ] &&  [ -f "$GPCONFIG_DIR/BACKUP_DIR" ];then
+      GITPUSHLIVE_BACKUP_HOUR=$(<"$GPCONFIG_DIR/BACKUP_ID")
+      GITPUSHLIVE_BACKUP_KEY=$(<"$GPCONFIG_DIR/BACKUP_KEY")
+      GITPUSHLIVE_BACKUP_BUCKET=$(<"$GPCONFIG_DIR/BACKUP_BUCKET")
+      GITPUSHLIVE_BACKUP_DIR=$(<"$GPCONFIG_DIR/BACKUP_DIR")
+    fi
+    # get backups
+
+    # create and run each one
+
+    # tell gitpush about each backup
+  fi
 }
