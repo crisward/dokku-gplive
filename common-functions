@@ -8,3 +8,7 @@ is_valid_service_name() {
   fi
   return 1
 }
+
+faketty() {
+  script -qefc "$(printf "%q " "$@")" /dev/null
+}

@@ -189,26 +189,82 @@ gplive_configbackups_cmd(){
   echo "Backup Setting Updated"
 }
 
-gplive_backup_cmd(){
+gplive_autobackup_cmd(){
+  declare desc="runs backups if hour matches config, intended to be run by cron"
   # get config
   if [ -f "$GPCONFIG_DIR/BACKUP_HOUR" ];then
     GITPUSHLIVE_BACKUP_HOUR=$(<"$GPCONFIG_DIR/BACKUP_HOUR")
   fi
   # check if hour is current hour
   local currentHour=$(date +%H)
-  if [ $currentHour == $GITPUSHLIVE_BACKUP_HOUR ]; then
-    # get backup settings
-    if [ -f "$GPCONFIG_DIR/BACKUP_ID" ] && [ -f "$GPCONFIG_DIR/BACKUP_KEY" ] && [ -f "$GPCONFIG_DIR/BACKUP_BUCKET" ] &&  [ -f "$GPCONFIG_DIR/BACKUP_DIR" ];then
-      GITPUSHLIVE_BACKUP_HOUR=$(<"$GPCONFIG_DIR/BACKUP_ID")
-      GITPUSHLIVE_BACKUP_KEY=$(<"$GPCONFIG_DIR/BACKUP_KEY")
-      GITPUSHLIVE_BACKUP_BUCKET=$(<"$GPCONFIG_DIR/BACKUP_BUCKET")
-      GITPUSHLIVE_BACKUP_DIR=$(<"$GPCONFIG_DIR/BACKUP_DIR")
-      # get backups
-    
-      # create and run each one
+  if [ "$currentHour" = "$GITPUSHLIVE_BACKUP_HOUR" ]; then
+    gplive_backup_cmd
+  fi
+}
 
-      # tell gitpush about each backup
+gplive_backup_cmd(){
+  declare desc="runs backups"
+  # get backup settings
+  if [ -f "$GPCONFIG_DIR/BACKUP_ID" ] && [ -f "$GPCONFIG_DIR/BACKUP_KEY" ] && [ -f "$GPCONFIG_DIR/BACKUP_BUCKET" ] &&  [ -f "$GPCONFIG_DIR/BACKUP_DIR" ];then
+    GITPUSHLIVE_BACKUP_ID=$(<"$GPCONFIG_DIR/BACKUP_ID")
+    GITPUSHLIVE_BACKUP_KEY=$(<"$GPCONFIG_DIR/BACKUP_KEY")
+    GITPUSHLIVE_BACKUP_BUCKET=$(<"$GPCONFIG_DIR/BACKUP_BUCKET")
+    GITPUSHLIVE_BACKUP_DIR=$(<"$GPCONFIG_DIR/BACKUP_DIR")
+    # get backups
+    if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
+      # GITPUSHLIVE_BACKUPS=$(<"$GPCONFIG_DIR/BACKUPS")
+      trap "rm -rf /tmp/gplbackups/ > /dev/null" EXIT # remove temp dir
+      while read -r line
+      do
+        # create and run each one
+        read -a strparts <<< "$line"
+        local type=${strparts[0]}
+        local name=${strparts[1]}
+        local dir=${strparts[2]}
+        if [ "$type" = "volume" ];then
+          if [ -d "$name" ]; then 
+            docker run --rm \
+            -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
+            -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
+            -v "${name}:/backup/" \
+            amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir/ --quiet
 
+            curl "$URL/duocms/api/dokku/backup" --silent \
+            --data "name=$name" \
+            --data "type=$type" \
+            --data "status=success" > /dev/null
+          else 
+            # send failed backup to gitpush?
+            curl "$URL/duocms/api/dokku/backup" --silent \
+            --data "name=$name" \
+            --data "type=$type" \
+            --data "status=failed" > /dev/null
+          fi
+        else 
+          if [ -d "/var/lib/dokku/services/$type/$name" ]; then # check it exists
+            local backupdir="/tmp/gplbackups/"
+            [ -d $backupdir ] || mkdir "$backupdir"
+            local filename="$name-$type-$(date +"%Y%m%d-%H%M").gz"
+            faketty dokku "$type:export" $name | gzip -9c > "$backupdir$filename"
+            docker run --rm \
+            -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
+            -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
+            -v "$backupdir:/backup/" \
+            amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename --quiet
+            curl "$URL/duocms/api/dokku/backup" --silent \
+            --data "name=$name" \
+            --data "type=$type" \
+            --data "status=success" > /dev/null
+          else 
+            # send failed backup to gitpush?
+            curl "$URL/duocms/api/dokku/backup" --silent \
+            --data "name=$name" \
+            --data "type=$type" \
+            --data "status=failed" > /dev/null
+          fi
+        fi 
+        # tell gitpush about each backup
+      done < "$GPCONFIG_DIR/BACKUPS"
     fi
   fi
 }
@@ -216,12 +272,16 @@ gplive_backup_cmd(){
 gplive_addbackup_cmd(){
   local type=$2
   local name=$3
+  local dir=$4
   local GITPUSHLIVE_BACKUPS=""
+  local entry=""
   if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
     GITPUSHLIVE_BACKUPS=$(<"$GPCONFIG_DIR/BACKUPS")
   fi
   if [ "$type" = "volume" ];then
     [ -d "$name" ] || dokku_log_fail "$type $name does not exist"
+    [ $dir ] || dokku_log_fail "you must supply an remote directory as the third parameter to backup a volume"
+    entry="$type $name $dir"
   else
     # check plugin is installed
     plugn list | awk '{print $1}' | grep -q "^${type}$" ||  dokku_log_fail "$type is not an installed plugin" 
@@ -229,15 +289,15 @@ gplive_addbackup_cmd(){
     is_valid_service_name "$name" || dokku_log_fail "Please specify a valid name for the service. Valid characters are: [A-Za-z0-9_]+"
     # check serice exists
     [ -d "/var/lib/dokku/services/$type/$name" ] || dokku_log_fail "$type $name does not exist"    
+    entry="$type $name"
   fi
   # check if new backup exists in existing
-  if [[ "$GITPUSHLIVE_BACKUPS" == *"$type $name"* ]]; then
+  if [[ "$GITPUSHLIVE_BACKUPS" == *entry* ]]; then
     dokku_log_fail "That backup has already been added"
   else
-    echo "$type $name" >> "$GPCONFIG_DIR/BACKUPS"
+    echo "$entry" >> "$GPCONFIG_DIR/BACKUPS"
   fi
-
-  echo "$type $name has been added to the scheduled backups"
+  dokku_log_info2 "$type $name has been added to the scheduled backups"
 }
 
 
@@ -261,7 +321,7 @@ gplive_removebackup_cmd(){
   else
     dokku_log_fail "That backup does not exist"
   fi
-  echo "$entry has been removed from the scheduled backups"
+  dokku_log_info2 "$entry has been removed from the scheduled backups"
 }
 
 gplive_listbackups_cmd(){

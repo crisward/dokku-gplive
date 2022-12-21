@@ -51,6 +51,9 @@ help_content
   gplive:backup)
     gplive_backup_cmd "$@"
     ;;   
+  gplive:autobackup)
+    gplive_autobackup_cmd "$@"
+    ;; 
   gplive:addbackup)
     gplive_addbackup_cmd "$@"
     ;;  

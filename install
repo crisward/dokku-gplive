@@ -16,4 +16,4 @@ esac
 echo "PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin">/etc/cron.d/gplive
 echo "* * * * * root dokku gplive:sendstats>/dev/null">>/etc/cron.d/gplive
 # and one every hour to do backups if hours match
-echo "0 * * * * root dokku gplive:sendstats>/dev/null">>/etc/cron.d/gplive:backup
+echo "0 * * * * root dokku gplive:autobackup>/dev/null">>/etc/cron.d/gplive
