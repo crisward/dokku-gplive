@@ -195,9 +195,9 @@ gplive_autobackup_cmd(){
   if [ -f "$GPCONFIG_DIR/BACKUP_HOUR" ];then
     GITPUSHLIVE_BACKUP_HOUR=$(<"$GPCONFIG_DIR/BACKUP_HOUR")
   fi
-  # check if hour is current hour
+  # check if hour is current hour, $(( +0)) converts to int as date outputs eg 02
   local currentHour=$(date +%H)
-  if [ "$currentHour" = "$GITPUSHLIVE_BACKUP_HOUR" ]; then
+  if [ $(($currentHour+0)) = $(($GITPUSHLIVE_BACKUP_HOUR+0)) ]; then
     gplive_backup_cmd
   fi
 }
