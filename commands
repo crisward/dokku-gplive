@@ -17,7 +17,7 @@ help_content
         echo -e 'Usage: dokku gplive:command '
         echo ''
         echo '  gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
-        echo '  gplive:configbackups, configures the backup settings, run from gitpushlive.com'
+        echo '  gplive:configbackups [aws id] [aws key] [bucket] [dir] [hour], configures the backup settings, run from gitpushlive.com'
         echo '  gplive:addbackup [type] [name], adds a volume or service to the backup script'
         echo '  gplive:removebackup [type] [name], removes a volume or service from the backup script'
     else
