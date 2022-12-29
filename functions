@@ -285,6 +285,7 @@ gplive_addbackup_cmd(){
   else
     echo "$entry" >> "$GPCONFIG_DIR/BACKUPS"
   fi
+   backupNotify $GPCONFIG_DIR $name $type "added"
   dokku_log_info2 "$type $name has been added to the scheduled backups"
 }
 
@@ -309,6 +310,8 @@ gplive_removebackup_cmd(){
   else
     dokku_log_fail "That backup does not exist"
   fi
+  # Notify
+  backupNotify $GPCONFIG_DIR $name $type "removed"
   dokku_log_info2 "$entry has been removed from the scheduled backups"
 }
 
