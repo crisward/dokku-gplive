@@ -280,7 +280,7 @@ gplive_addbackup_cmd(){
     entry="$type $name"
   fi
   # check if new backup exists in existing
-  if [[ "$GITPUSHLIVE_BACKUPS" == *entry* ]]; then
+  if [[ "$GITPUSHLIVE_BACKUPS" == *"$entry"* ]]; then
     dokku_log_fail "That backup has already been added"
   else
     echo "$entry" >> "$GPCONFIG_DIR/BACKUPS"
