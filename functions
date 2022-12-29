@@ -305,7 +305,7 @@ gplive_removebackup_cmd(){
   fi
   local entry="$type $name"
   if [[ "$GITPUSHLIVE_BACKUPS" == *"$entry"* ]]; then
-    sed -i "s,$entry,,g" "$GPCONFIG_DIR/BACKUPS" # remove backup
+    sed -i "s,$entry.*$,,g" "$GPCONFIG_DIR/BACKUPS" # remove backup
     sed -i '/^$/d' "$GPCONFIG_DIR/BACKUPS" # remove blank lines
   else
     dokku_log_fail "That backup does not exist"
