@@ -113,15 +113,6 @@ gplive_sendstats_cmd() {
   do
     newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
   done
-  # if test `find "$PLUGIN_AVAILABLE_PATH/gplive/plugin.toml" -mmin +60` ;then #only check once per hour, if file has recently updated
-  #   currentversion=$(cat $PLUGIN_AVAILABLE_PATH/gplive/plugin.toml | grep "version.*" | grep -o [0-9.]*)
-  #   if [ "$newversion" == "$currentversion" ] ; then
-  #     echo "already up to date"
-  #   else
-  #     echo "updating to $newversion"
-  #     cd $PLUGIN_AVAILABLE_PATH/gplive/ && git pull origin master
-  #   fi
-  # fi
 }
 
 gplive_updateapp_cmd() {
@@ -213,9 +204,11 @@ gplive_backup_cmd(){
     # get backups
     if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
       trap "rm -rf /tmp/gplbackups/ > /dev/null" EXIT # remove temp dir
-      while read -r line
+      IFS=$'\n' #set internal field separator to newline for cat
+      for line in $(cat "$GPCONFIG_DIR/BACKUPS");
       do
         # create and run each one
+        IFS=$' \t\n'
         read -a strparts <<< "$line"
         local type=${strparts[0]}
         local name=${strparts[1]}
@@ -252,7 +245,7 @@ gplive_backup_cmd(){
           fi
         fi 
         # tell gitpush about each backup
-      done < "$GPCONFIG_DIR/BACKUPS"
+      done
     fi
   fi
 }
