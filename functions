@@ -104,7 +104,7 @@ gplive_sendstats_cmd() {
   CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
   CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
   TOTALMEM=$(cat /proc/meminfo | grep MemTotal: | awk '{printf $2}')
-  MEMFREE=$(cat /proc/meminfo | grep Inactive: | awk '{printf $2}')
+  MEMFREE=$(cat /proc/meminfo | grep MemAvailable: | awk '{printf $2}')
   MEMORYUSED=$(awk -v tm="$TOTALMEM" -v mf="$MEMFREE" "BEGIN {a=100-(mf / tm * 100); print a}") # percentage
   DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}')
   : ${DISKUSAGE:="0"}
