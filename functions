@@ -219,9 +219,7 @@ gplive_backup_cmd(){
             -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
             -v "${name}:/backup/" \
-            amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir
-            # send successful backups to gitpush
-            backupNotify $GPCONFIG_DIR $name $type "success"
+            amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir  </dev/null && backupNotify $GPCONFIG_DIR $name $type "success" || backupNotify $GPCONFIG_DIR $name $type "failed"
           else 
             # send failed backup to gitpush
             backupNotify $GPCONFIG_DIR $name $type "failed"
@@ -236,9 +234,7 @@ gplive_backup_cmd(){
             -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
             -v "$backupdir:/backup/" \
-            amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename
-            # send successful backups to gitpush
-            backupNotify $GPCONFIG_DIR $name $type "success"
+            amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename </dev/null && backupNotify $GPCONFIG_DIR $name $type "success" || backupNotify $GPCONFIG_DIR $name $type "failed"
           else 
             # send failed backups to gitpush
             backupNotify $GPCONFIG_DIR $name $type "failed"
