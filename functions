@@ -219,7 +219,7 @@ gplive_backup_cmd(){
             -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
             -v "${name}:/backup/" \
-            amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir/ --quiet </dev/null # stdin use dev null to prevent eating loop
+            amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir
             # send successful backups to gitpush
             backupNotify $GPCONFIG_DIR $name $type "success"
           else 
@@ -236,7 +236,7 @@ gplive_backup_cmd(){
             -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
             -v "$backupdir:/backup/" \
-            amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename --quiet </dev/null # stdin use dev null to prevent eating loop
+            amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename
             # send successful backups to gitpush
             backupNotify $GPCONFIG_DIR $name $type "success"
           else 
