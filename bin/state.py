@@ -29,19 +29,30 @@ def servicesFromOptions(options):
       services.append(service)
   return services
 
-def containers(appnames):
-  stream = os.popen('docker ps --format \'{"container":"{{ .ID }}", "image": "{{ .Image }}", "name":"{{ .Names }}"},\'')
+def containers(appnames,services):
+  stream = os.popen('docker ps --format \'{"container":"{{ .ID }}", "image": "{{ .Image }}", "name":"{{ .Names }}", "ports":"{{ .Ports }}"},\'')
   output = "["+stream.read().strip()[:-1]+"]"
   details = json.loads(output)
   appcontainers = {}
   for line in details:
-    if line["image"].startswith("dokku/"):
+    # get app details
+    if line["image"].startswith("dokku/") and line["name"].endswith(".ambassador") == False:
       name = line["image"].replace("dokku/","").replace(":latest","")
       if name in appcontainers.keys():
         appcontainers[name].processes+=1
       else:
         line["processes"] = 1
         appcontainers[name]=line
+    # get service details
+    elif line["name"] in services.keys():
+      key = line["name"]
+      services[key]["status"] = "running"
+      services[key]["container"] = line["container"]
+      services[key]["version"] = re.search('[^:]+$',line["image"]).group(0)
+    elif line["name"].endswith(".ambassador") and line["name"].replace(".ambassador","") in services.keys():
+      key = line["name"].replace(".ambassador","")
+      services[key]["exposed"] = ",".join( list(set(re.findall("(\d+->\d+)",line["ports"]))) )
+      
   apps = []
   for appname in appnames:
     app = { "name":appname }
@@ -70,18 +81,33 @@ def containers(appnames):
             app["services"] = servicesFromOptions(app["docker_options"][stage])
 
     apps.append(app)
-  return apps
+  state = {"apps":apps,"services":list(services.values())}
+  return state
 
-
-def main():
+def getAppNames():
   stream = os.popen('dokku --quiet apps:list')
   output = stream.read().strip()
-  appnames = output.split("\n")
-  apps = containers(appnames)
-  state = {
-    "apps":apps,
-    "services":[]
-  }
+  return output.split("\n")
+
+def getServices():
+  services = {}
+  types = fileList("/var/lib/dokku/services/")
+  for type in types:
+    serviceNames = fileList("/var/lib/dokku/services/"+type) 
+    for name in serviceNames:
+      services["dokku."+type+"."+name]={"name":name,"type":type,"state":"stopped","exposed":""}
+  return services
+  
+def fileList(dir):
+  stream = os.popen('ls -a '+dir+' | cat')
+  output = stream.read().strip().split("\n")
+  return [x for x in output if x.startswith(".")==False]
+
+def main():
+  appnames = getAppNames()
+  services = getServices()
+
+  state = containers(appnames,services)
 
   with open("state.json", "w") as outfile:
     json.dump(state,outfile,indent=4)
