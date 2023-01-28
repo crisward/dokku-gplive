@@ -109,7 +109,7 @@ def main():
 
   state = containers(appnames,services)
 
-  with open("state.json", "w") as outfile:
+  with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
     json.dump(state,outfile,indent=4)
 
 

@@ -32,6 +32,10 @@ help_content
   gplive:sendstats)
     gplive_sendstats_cmd "$@"
     ;;
+  
+  gplive:sendstate)
+    gplive_sendstate_cmd "$@"
+    ;;
 
   gplive:list)
     gplive_list_cmd "$@"

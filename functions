@@ -115,6 +115,21 @@ gplive_sendstats_cmd() {
   done
 }
 
+
+gplive_sendstate_cmd(){
+  declare desc="sends dokku state to server(s)"
+  if [ -f "$GPCONFIG_DIR/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
+  fi
+  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  ./bin/state.py
+  BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
+  for URL in "${array[@]}"
+  do
+    newversion=$(curl -sH "Content-Type: application/json" -X POST --data "@/home/dokku/.gitpushcache/state.json"  "$URL/duocms/api/dokku/state")
+  done
+}
+
 gplive_updateapp_cmd() {
   declare desc="sends app info to servers"
 
