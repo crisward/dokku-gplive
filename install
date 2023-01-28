@@ -10,6 +10,9 @@ case "$DOKKU_DISTRO" in
     ;;
 esac
 
+# create setting dir
+mkdir -p "/home/dokku/.gitpushcache"
+
 # remove cron if it already exists
 [ -f /etc/cron.d/gplive ] && rm /etc/cron.d/gplive
 # create cron to run every minute to update stats
