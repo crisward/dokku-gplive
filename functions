@@ -122,7 +122,7 @@ gplive_sendstate_cmd(){
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
-  ./bin/state.py
+  "$PLUGIN_CORE_AVAILABLE_PATH/bin/state.py"
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
