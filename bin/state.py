@@ -29,7 +29,7 @@ def servicesFromOptions(options):
       services.append(service)
   return services
 
-def containers(appnames,services):
+def containers(appnames,services,certs):
   stream = os.popen('docker ps --format \'{"container":"{{ .ID }}", "image": "{{ .Image }}", "name":"{{ .Names }}", "ports":"{{ .Ports }}"},\'')
   output = "["+stream.read().strip()[:-1]+"]"
   details = json.loads(output)
@@ -55,11 +55,13 @@ def containers(appnames,services):
       
   apps = []
   for appname in appnames:
-    app = { "name":appname }
+    app = { "name":appname, "expires_at": None }
     if appname in appcontainers.keys():
       app["container"] = appcontainers[appname]["container"]
       app["status"] = "running"
       app["processes"] = appcontainers[appname]["processes"]
+      if appname in certs.keys():
+        app["expires_at"] = certs[appname]
     else: 
       app["container"] = ""
       app["status"] = "stopped"
@@ -89,6 +91,18 @@ def getAppNames():
   output = stream.read().strip()
   return output.split("\n")
 
+def getCerts():
+  stream = os.popen('dokku letsencrypt:list --quiet')
+  output = stream.read().strip()
+  lines = output.split("\n")
+  certs = {}
+  # rivergate-centre2016      2023-04-25 18:31:25       86d, 19h, 17m, 45s        56d, 19h, 17m, 45s
+  for line in lines:
+    appname = re.search('^[^ ]+',line).group(0)
+    expires = re.search('\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',line).group(0)
+    certs[appname] = expires
+  return certs
+    
 def getServices():
   services = {}
   types = fileList("/var/lib/dokku/services/")
@@ -106,8 +120,9 @@ def fileList(dir):
 def main():
   appnames = getAppNames()
   services = getServices()
+  certs = getCerts()
 
-  state = containers(appnames,services)
+  state = containers(appnames,services,certs)
 
   with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
     json.dump(state,outfile,indent=4)
