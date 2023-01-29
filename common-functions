@@ -26,6 +26,8 @@ backupNotify(){
   for URL in "${array[@]}"
   do
     curl "$URL/duocms/api/dokku/backup" --silent \
+    --retry 5 \
+    --retry-max-time 120 \
     --data "name=$name" \
     --data "type=$type" \
     --data "status=$status" > /dev/null

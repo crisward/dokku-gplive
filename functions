@@ -126,7 +126,7 @@ gplive_sendstate_cmd(){
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
-    newversion=$(curl -sH "Content-Type: application/json" -X POST --data "@/home/dokku/.gitpushcache/state.json"  "$URL/duocms/api/dokku/state")
+    newversion=$(curl -sH "Content-Type: application/json" --retry 2 --retry-max-time 30 -X POST --data "@/home/dokku/.gitpushcache/state.json"  "$URL/duocms/api/dokku/state")
   done
 }
 
