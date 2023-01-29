@@ -89,12 +89,13 @@ def containers(appnames,services,certs):
 def getAppNames():
   stream = os.popen('dokku --quiet apps:list')
   output = stream.read().strip()
-  return output.split("\n")
+  lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
+  return lines
 
 def getCerts():
   stream = os.popen('dokku letsencrypt:list --quiet')
   output = stream.read().strip()
-  lines = output.split("\n")
+  lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
   certs = {}
   # rivergate-centre2016      2023-04-25 18:31:25       86d, 19h, 17m, 45s        56d, 19h, 17m, 45s
   for line in lines:
