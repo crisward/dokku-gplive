@@ -110,8 +110,8 @@ def getPlugins():
   plugins = []
   for line in lines:
     name = re.search('^[^ ]+',line.strip()).group(0)
-    plugins.append(name)
-  print(plugins)
+    if "dokku core" not in line:
+      plugins.append(name)
   return plugins
     
 def getServices():
