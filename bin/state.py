@@ -102,6 +102,17 @@ def getCerts():
     expires = re.search('\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',line).group(0)
     certs[appname] = expires
   return certs
+
+def getPlugins():
+  stream = os.popen('dokku plugin:list --quiet')
+  output = stream.read().strip()
+  lines = output.split("\n")
+  plugins = []
+  for line in lines:
+    name = re.search('^[^ ]+',line.strip()).group(0)
+    plugins.append(name)
+  print(plugins)
+  return plugins
     
 def getServices():
   services = {}
@@ -120,9 +131,13 @@ def fileList(dir):
 def main():
   appnames = getAppNames()
   services = getServices()
-  certs = getCerts()
+  plugins = getPlugins()
+  certs = {}
+  if 'letsencrypt' in plugins:
+    certs = getCerts()
 
   state = containers(appnames,services,certs)
+  state["plugins"] = plugins
 
   with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
     json.dump(state,outfile,indent=4)
