@@ -110,8 +110,12 @@ def getPlugins():
   plugins = []
   for line in lines:
     name = re.search('^[^ ]+',line.strip()).group(0)
+    version = re.search('^\S+\s+([0-9.]+)',line.strip()).group(1)
     if "dokku core" not in line:
-      plugins.append(name)
+      plugins.append({
+        "name":name,
+        "version":version
+      })
   return plugins
     
 def getServices():
@@ -133,9 +137,8 @@ def main():
   services = getServices()
   plugins = getPlugins()
   certs = {}
-  if 'letsencrypt' in plugins:
+  for _ in [x for x in plugins if x["name"] == "letsencrypt"]:
     certs = getCerts()
-
   state = containers(appnames,services,certs)
   state["plugins"] = plugins
 
