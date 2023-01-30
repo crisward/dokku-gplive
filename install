@@ -12,6 +12,7 @@ esac
 
 # create setting dir
 mkdir -p "/home/dokku/.gitpushcache"
+chown dokku:dokku /home/dokku/.gitpushcache/
 
 # remove cron if it already exists
 [ -f /etc/cron.d/gplive ] && rm /etc/cron.d/gplive
