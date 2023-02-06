@@ -115,7 +115,6 @@ gplive_sendstats_cmd() {
   DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
   for URL in "${array[@]}"
   do
-    echo "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}"
     newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
   done
 }
