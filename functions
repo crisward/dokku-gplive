@@ -136,7 +136,7 @@ gplive_sendstate_cmd(){
 
 gplive_getstate_cmd(){
   declare desc="gets dokku state"
-  "$PLUGIN_AVAILABLE_PATH/gplive/bin/state.py print"
+  "$PLUGIN_AVAILABLE_PATH/gplive/bin/state.py" print
 }
 
 gplive_updateapp_cmd() {
