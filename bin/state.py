@@ -3,6 +3,7 @@ import json
 import os
 import re
 import sys
+import subprocess
 
 DOKKU_ROOT = "/home/dokku"
 
@@ -87,23 +88,21 @@ def containers(appnames,services,certs):
   state = {"apps":apps,"services":list(services.values())}
   return state
 
+def run(commands): # take a list of command and returns the output of the first one that works
+  for cmd in commands:
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc.wait()
+    if proc.returncode == 0:
+      return proc.stdout.read().decode().strip()
+
+
 def getAppNames():
-  stream = os.popen('dokku --quiet apps:list')
-  output = stream.read().strip()
-  procid = stream.close()
-  if procid and os.WEXITSTATUS(procid) > 0:
-    stream = os.popen('dokku apps --quiet')
-    output = stream.read().strip()
+  output = run([['dokku','--quiet','apps:list'],['dokku','apps','--quiet']])
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
   return lines
 
 def getCerts():
-  stream = os.popen('dokku letsencrypt:list --quiet')
-  output = stream.read().strip()
-  procid = stream.close()
-  if procid and os.WEXITSTATUS(procid) > 0:
-    stream = os.popen('dokku letsencrypt:ls --quiet') # old version
-    output = stream.read().strip()
+  output = run([['dokku','--quiet','letsencrypt:list'],['dokku','letsencrypt:ls','--quiet']])
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
   certs = {}
   # rivergate-centre2016      2023-04-25 18:31:25       86d, 19h, 17m, 45s        56d, 19h, 17m, 45s
@@ -114,20 +113,13 @@ def getCerts():
   return certs
 
 def getPlugins():
-  stream = os.popen('dokku plugin:list --quiet')
-  output = stream.read().strip()
-  procid = stream.close()
+  output = run([['dokku','--quiet','plugin:list'],['dokku','plugin']])
   lines = output.split("\n")
-  if procid and os.WEXITSTATUS(procid) > 0:
-    stream = os.popen('dokku plugin') # try old dokku
-    output = stream.read().strip()
-    lines = output.split("\n")
-    lines.pop(0) # remove first line
   plugins = []
   for line in lines:
     name = re.search('^[^ ]+',line.strip()).group(0)
     version = re.search('^\S+\s+([0-9.]+)',line.strip()).group(1)
-    if "dokku core" not in line:
+    if "dokku core" not in line and name!="plugn:":
       plugins.append({
         "name":name,
         "version":version
