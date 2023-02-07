@@ -41,7 +41,7 @@ def containers(appnames,services,certs):
     if line["image"].startswith("dokku/") and line["name"].endswith(".ambassador") == False:
       name = line["image"].replace("dokku/","").replace(":latest","")
       if name in appcontainers.keys():
-        appcontainers[name].processes+=1
+        appcontainers[name]["processes"]+=1
       else:
         line["processes"] = 1
         appcontainers[name]=line
