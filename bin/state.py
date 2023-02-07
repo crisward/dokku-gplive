@@ -89,12 +89,20 @@ def containers(appnames,services,certs):
 def getAppNames():
   stream = os.popen('dokku --quiet apps:list')
   output = stream.read().strip()
+  exitstatus = os.WEXITSTATUS(stream.close())
+  if exitstatus > 0:
+    stream = os.popen('dokku apps --quiet')
+    output = stream.read().strip()
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
   return lines
 
 def getCerts():
   stream = os.popen('dokku letsencrypt:list --quiet')
   output = stream.read().strip()
+  exitstatus = os.WEXITSTATUS(stream.close())
+  if exitstatus > 0:
+    stream = os.popen('dokku letsencrypt:ls --quiet') # old version
+    output = stream.read().strip()
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
   certs = {}
   # rivergate-centre2016      2023-04-25 18:31:25       86d, 19h, 17m, 45s        56d, 19h, 17m, 45s
@@ -107,7 +115,13 @@ def getCerts():
 def getPlugins():
   stream = os.popen('dokku plugin:list --quiet')
   output = stream.read().strip()
+  exitstatus = os.WEXITSTATUS(stream.close())
   lines = output.split("\n")
+  if exitstatus > 0:
+    stream = os.popen('dokku plugin') # try old dokku
+    output = stream.read().strip()
+    lines = output.split("\n")
+    lines.pop(0) # remove first line
   plugins = []
   for line in lines:
     name = re.search('^[^ ]+',line.strip()).group(0)
@@ -142,9 +156,6 @@ def main():
     certs = getCerts()
   state = containers(appnames,services,certs)
   state["plugins"] = plugins
-
-  with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
-    json.dump(state,outfile,indent=4)
-
+  print(json.dumps(state,indent=4))
 
 main()
