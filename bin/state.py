@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import sys
 
 DOKKU_ROOT = "/home/dokku"
 
@@ -156,6 +157,11 @@ def main():
     certs = getCerts()
   state = containers(appnames,services,certs)
   state["plugins"] = plugins
-  print(json.dumps(state,indent=4))
+  try:
+    if sys.argv[1] == "print":
+      print(json.dumps(state,indent=4))
+  except:
+    with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
+      json.dump(state,outfile,indent=4)
 
 main()
