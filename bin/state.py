@@ -91,7 +91,7 @@ def getAppNames():
   stream = os.popen('dokku --quiet apps:list')
   output = stream.read().strip()
   exitstatus = os.WEXITSTATUS(stream.close())
-  if exitstatus > 0:
+  if exitstatus!=None:
     stream = os.popen('dokku apps --quiet')
     output = stream.read().strip()
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
@@ -101,7 +101,7 @@ def getCerts():
   stream = os.popen('dokku letsencrypt:list --quiet')
   output = stream.read().strip()
   exitstatus = os.WEXITSTATUS(stream.close())
-  if exitstatus > 0:
+  if exitstatus!=None:
     stream = os.popen('dokku letsencrypt:ls --quiet') # old version
     output = stream.read().strip()
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
@@ -118,7 +118,7 @@ def getPlugins():
   output = stream.read().strip()
   exitstatus = os.WEXITSTATUS(stream.close())
   lines = output.split("\n")
-  if exitstatus > 0:
+  if exitstatus!=None:
     stream = os.popen('dokku plugin') # try old dokku
     output = stream.read().strip()
     lines = output.split("\n")
@@ -163,5 +163,7 @@ def main():
   except:
     with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
       json.dump(state,outfile,indent=4)
+
+
 
 main()
