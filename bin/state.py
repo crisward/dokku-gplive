@@ -90,8 +90,8 @@ def containers(appnames,services,certs):
 def getAppNames():
   stream = os.popen('dokku --quiet apps:list')
   output = stream.read().strip()
-  exitstatus = os.WEXITSTATUS(stream.close())
-  if exitstatus!=None:
+  procid = stream.close()
+  if procid and os.WEXITSTATUS(procid) > 0:
     stream = os.popen('dokku apps --quiet')
     output = stream.read().strip()
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
@@ -100,8 +100,8 @@ def getAppNames():
 def getCerts():
   stream = os.popen('dokku letsencrypt:list --quiet')
   output = stream.read().strip()
-  exitstatus = os.WEXITSTATUS(stream.close())
-  if exitstatus!=None:
+  procid = stream.close()
+  if procid and os.WEXITSTATUS(procid) > 0:
     stream = os.popen('dokku letsencrypt:ls --quiet') # old version
     output = stream.read().strip()
   lines = list(  filter(lambda item: len(item) > 0, output.split("\n")) )
@@ -116,9 +116,9 @@ def getCerts():
 def getPlugins():
   stream = os.popen('dokku plugin:list --quiet')
   output = stream.read().strip()
-  exitstatus = os.WEXITSTATUS(stream.close())
+  procid = stream.close()
   lines = output.split("\n")
-  if exitstatus!=None:
+  if procid and os.WEXITSTATUS(procid) > 0:
     stream = os.popen('dokku plugin') # try old dokku
     output = stream.read().strip()
     lines = output.split("\n")
@@ -158,7 +158,7 @@ def main():
   state = containers(appnames,services,certs)
   state["plugins"] = plugins
   try:
-    if sys.argv[1] == "print":
+    if len(sys.argv) > 0 and sys.argv[1] == "print":
       print(json.dumps(state,indent=4))
   except:
     with open("/home/dokku/.gitpushcache/state.json", "w") as outfile:
