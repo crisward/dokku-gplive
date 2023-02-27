@@ -13,7 +13,7 @@ case "$1" in
 help_content
     }
 
-    if [[ $1 = "gplive:help" ]] ; then
+    if [[ $1 = "gplive:help" || $1 = "gplive" ]] ; then
         echo -e 'Usage: dokku gplive:command '
         echo ''
         echo '  gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
