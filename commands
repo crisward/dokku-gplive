@@ -4,7 +4,7 @@ source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
 source "$PLUGIN_AVAILABLE_PATH/gplive/functions"
 
 case "$1" in
-  help | gplive:help)
+  help | gplive:help | gplive)
     help_content_func () {
       declare desc="return help_content string"
       cat<<help_content
@@ -17,18 +17,16 @@ help_content
         echo -e 'Usage: dokku gplive:command '
         echo ''
         echo '  gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
+        echo '  gplive:sendstate, sends current server state to gitpushlive'
         echo '  gplive:configbackups [aws id] [aws key] [bucket] [dir] [hour], configures the backup settings, run from gitpushlive.com'
         echo '  gplive:addbackup [type] [name], adds a volume or service to the backup script'
         echo '  gplive:removebackup [type] [name], removes a volume or service from the backup script'
+
     else
         help_content_func
     fi
     ;;
   
-  gplive)
-    gplive_main_cmd "$@"
-    ;;
-
   gplive:sendstats)
     gplive_sendstats_cmd "$@"
     ;;
