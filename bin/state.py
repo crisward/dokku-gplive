@@ -145,7 +145,7 @@ def fileList(dir):
 
 def approxMem():
   kb = (os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES'))/1024
-  mb = math.ceil(math.ceil(kb/1024)/1024)*1024*1024 # round up to nearest mb
+  mb = math.ceil(math.ceil(kb/1024)/1024)*1024 # round up to nearest mb
   return mb
 
 def diskSize():
