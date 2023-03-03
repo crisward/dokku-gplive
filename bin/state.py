@@ -145,12 +145,12 @@ def fileList(dir):
 
 def approxMem():
   kb = (os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES'))/1024
-  mb = math.ceil(math.ceil(kb/1024)/1024)*1024*1024 # round up to nearest gb
+  mb = math.ceil(math.ceil(kb/1024)/1024)*1024*1024 # round up to nearest mb
   return mb
 
 def diskSize():
   total, used, free = shutil.disk_usage("/")
-  return (total // 1000000)
+  return math.ceil(math.ceil(total/1024)/1024)
 
 def main():
   appnames = getAppNames()
