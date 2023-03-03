@@ -4,6 +4,9 @@ import os
 import re
 import sys
 import subprocess
+import math
+import multiprocessing
+import shutil
 
 DOKKU_ROOT = "/home/dokku"
 
@@ -140,6 +143,15 @@ def fileList(dir):
   output = stream.read().strip().split("\n")
   return [x for x in output if x.startswith(".")==False]
 
+def approxMem():
+  kb = (os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES'))/1024
+  mb = math.ceil(math.ceil(kb/1024)/1024)*1024*1024 # round up to nearest gb
+  return mb
+
+def diskSize():
+  total, used, free = shutil.disk_usage("/")
+  return (total // 1024)
+
 def main():
   appnames = getAppNames()
   services = getServices()
@@ -149,6 +161,9 @@ def main():
     certs = getCerts()
   state = containers(appnames,services,certs)
   state["plugins"] = plugins
+  state["memory"] = approxMem()
+  state["vcpus"] = multiprocessing.cpu_count()
+  state["disk"] = diskSize()
   try:
     if len(sys.argv) > 0 and sys.argv[1] == "print":
       print(json.dumps(state,indent=4))
