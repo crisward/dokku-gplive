@@ -150,7 +150,7 @@ def approxMem():
 
 def diskSize():
   total, used, free = shutil.disk_usage("/")
-  return (total // 1024)
+  return (total // 1000000)
 
 def main():
   appnames = getAppNames()
