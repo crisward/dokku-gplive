@@ -139,6 +139,7 @@ def getServices():
   return services
   
 def fileList(dir):
+  if !os.path.exists(dir) return []
   stream = os.popen('ls -a '+dir+' | cat')
   output = stream.read().strip().split("\n")
   return [x for x in output if x.startswith(".")==False]
