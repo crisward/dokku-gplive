@@ -25,7 +25,7 @@ backupNotify(){
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
-    curl "$URL/duocms/api/dokku/backup" --silent \
+    curl "$URL/duocms/api/dokku/backup" --ipv4 --silent \
     --retry 5 \
     --retry-max-time 120 \
     --data "name=$name" \

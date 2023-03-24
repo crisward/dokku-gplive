@@ -25,7 +25,7 @@ gplive_dbupdate_cmd() {
     local status=$(dokku $typ:info $appname --status) # status
     for URL in "${array[@]}"
     do
-      curl "$URL/duocms/api/dokku/service" --silent \
+      curl "$URL/duocms/api/dokku/service" --ipv4 --silent \
         --data "name=$appname" \
         --data "type=$typ" \
         --data "container_id=${container:0:12}" \
@@ -46,7 +46,7 @@ gplive_leupdate_cmd() {
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
-    curl "$URL/duocms/api/dokku/certs" --silent \
+    curl "$URL/duocms/api/dokku/certs" --ipv4 --silent \
       --data "certs=$certs" > /dev/null
   done 
 }

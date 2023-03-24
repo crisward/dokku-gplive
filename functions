@@ -78,7 +78,7 @@ gplive_sendstats_cmd() {
   DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
   for URL in "${array[@]}"
   do
-    newversion=$(curl -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
+    newversion=$(curl --ipv4 -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
   done
 }
 
@@ -93,7 +93,7 @@ gplive_sendstate_cmd(){
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
-    newversion=$(curl -sH "Content-Type: application/json" --retry 2 --retry-max-time 30 -X POST --data "@/home/dokku/.gitpushcache/state.json"  "$URL/duocms/api/dokku/state")
+    newversion=$(curl --ipv4 -sH "Content-Type: application/json" --retry 2 --retry-max-time 30 -X POST --data "@/home/dokku/.gitpushcache/state.json"  "$URL/duocms/api/dokku/state")
   done
 }
 
@@ -138,7 +138,7 @@ gplive_updateapp_cmd() {
   for URL in "${array[@]}"
   do
     dokku_log_info1 "Notifying gitpushlive... $URL"
-    curl "$URL/duocms/api/dokku" --silent \
+    curl "$URL/duocms/api/dokku" --ipv4 --silent \
       --data "app[name]=$APP" \
       --data "app[meta][container_id]=${CONTAINER:0:12}" \
       --data "app[meta][container_type]=web" \
