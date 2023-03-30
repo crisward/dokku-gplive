@@ -9,7 +9,7 @@ gplive_list_cmd(){
   if [ -f "$GPCONFIG_DIR/URLS" ];then
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
@@ -23,7 +23,7 @@ gplive_add_cmd(){
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   regex='^https?://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]$'
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URL=$GITPUSHLIVE_BASE_URL
   URL="$2"
   # check if new domain exists in existing
   if [[ "$BASE_URL" == *"$URL"* ]]; then
@@ -41,7 +41,7 @@ gplive_remove_cmd(){
   if [ -f "$GPCONFIG_DIR/URLS" ];then
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   REMOVE="$2"
   NEWURLS=""
@@ -62,7 +62,7 @@ gplive_sendstats_cmd() {
   if [ -f "$GPCONFIG_DIR/URLS" ];then
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   CPUCORES=$(grep pro /proc/cpuinfo -c) # ie 1-4
   CPULOAD=$(cat /proc/loadavg | awk '{printf "%d",$1*100/var}' var="$CPUCORES") #percentage
@@ -88,7 +88,7 @@ gplive_sendstate_cmd(){
   if [ -f "$GPCONFIG_DIR/URLS" ];then
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URL=$GITPUSHLIVE_BASE_URL
   "$PLUGIN_AVAILABLE_PATH/gplive/bin/state.py"
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
@@ -129,11 +129,10 @@ gplive_updateapp_cmd() {
   if [ -f "$APP_ROOT/CONTAINER.web.1" ]; then
     CONTAINER=$(cat "$APP_ROOT/CONTAINER.web.1")
   fi
-  BASE_URL=${GITPUSHLIVE_BASE_URL-'https://gitpushlive.com'}
   if [ -f "$GPCONFIG_DIR/URLS" ];then
     GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
-  [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
+  BASE_URL=$GITPUSHLIVE_BASE_URL
   BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
   for URL in "${array[@]}"
   do
