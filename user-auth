@@ -18,7 +18,6 @@ gplive_dbupdate_cmd() {
     if [ -f "$SCRIPT_DIR/URLS" ];then
       GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/URLS")
     fi
-    local certs=$(dokku letsencrypt:ls 2> /dev/null || dokku letsencrypt:list)
     [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
     BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
     local container=$(dokku $typ:info $appname --id) # container id
