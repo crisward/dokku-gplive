@@ -3,20 +3,22 @@ set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 cmd=$3
 appname=$4
 plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 # runs ie mariadb:list > /home/dokku/mariadb.list for mariadb:create,destroy etc
 # so sync can just read from cache
 gplive_dbupdate_cmd() {
   local typ=${1%:*}
+  local cmd=$1
   local DOKKU_ROOT=$2
   local plugins=$3
   local appname=$4
   local parent_pid=$5
+  local build_process=$(pgrep -f -u "$(whoami)" "dokku $cmd $appname")
+  GPCONFIG_DIR="$DOKKU_ROOT/.gitpushcache"
   # checks if plugin exists before running command
   if [[ $plugins =~ "$typ"* ]]; then
-    timeout 30s tail --pid=$parent_pid -f /dev/null # wait for parent process to exit 
-    if [ -f "$SCRIPT_DIR/URLS" ];then
-      GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/URLS")
+    timeout 30s tail --pid=$build_process -f /dev/null # wait for parent process to exit 
+    if [ -f "$GPCONFIG_DIR/URLS" ];then
+      GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
     fi
     [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
     BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
@@ -35,10 +37,14 @@ gplive_dbupdate_cmd() {
 
 # sends cert list to server after each enable / revoke
 gplive_leupdate_cmd() {
-  local parent_pid=$1
-  timeout 30s tail --pid=$parent_pid -f /dev/null # wait for parent process to exit
-  if [ -f "$SCRIPT_DIR/URLS" ];then
-    GITPUSHLIVE_BASE_URL=$(<"$SCRIPT_DIR/URLS")
+  local cmd=$1
+  local appname=$2
+  local DOKKU_ROOT=$3
+  local build_process=$(pgrep -f -u "$(whoami)" "dokku $cmd $appname")
+  GPCONFIG_DIR="$DOKKU_ROOT/.gitpushcache"
+  timeout 30s tail --pid=$build_process -f /dev/null # wait for parent process to exit
+  if [ -f "$DOKKU_ROOT/URLS" ];then
+    GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
   fi
   local certs=$(dokku letsencrypt:ls 2> /dev/null || dokku letsencrypt:list)
   [ -z "$GITPUSHLIVE_BASE_URL" ] && BASE_URL='https://gitpushlive.com' || BASE_URL=$GITPUSHLIVE_BASE_URL
@@ -59,7 +65,7 @@ case $cmd in
   ;;
   letsencrypt*)
     if [[ $cmd == "letsencrypt" ]] || [[ $cmd == *"revoke" ]] || [[ $cmd == *"enable" ]]; then
-      gplive_leupdate_cmd "$PPID" &
+      gplive_leupdate_cmd "$cmd" "$appname" "$DOKKU_ROOT" &
     fi
   ;;
 esac
