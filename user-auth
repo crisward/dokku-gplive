@@ -24,13 +24,13 @@ gplive_dbupdate_cmd() {
     BASE_URLS=' ' read -r -a array <<< "$BASE_URL" # convert to array, incase multiple servers
     local container=$(dokku $typ:info $appname --id) # container id
     local status=$(dokku $typ:info $appname --status) # status
-    local exposed=$(dokku $typ:info test --exposed-ports)
+    local exposed=$(dokku $typ:info $appname --exposed-ports)
     for URL in "${array[@]}"
     do
       curl "$URL/duocms/api/dokku/service" --ipv4 --silent \
         --data "cmd=$cmd" \
         --data "name=$appname" \
-        --date "exposed=$exposed" \
+        --data "exposed=$exposed" \
         --data "type=$typ" \
         --data "container_id=${container:0:12}" \
         --data "status=$status"  > /dev/null
