@@ -27,7 +27,7 @@ gplive_dbupdate_cmd() {
     for URL in "${array[@]}"
     do
       curl "$URL/duocms/api/dokku/service" --ipv4 --silent \
-        --date "cmd=$cmd" \
+        --data "cmd=$cmd" \
         --data "name=$appname" \
         --data "type=$typ" \
         --data "container_id=${container:0:12}" \
