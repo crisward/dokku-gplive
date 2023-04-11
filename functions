@@ -137,6 +137,9 @@ gplive_updateapp_cmd() {
   for URL in "${array[@]}"
   do
     dokku_log_info1 "Notifying gitpushlive... $URL"
+    if [ -z "$NAME" ]; then
+      NAME=$SUDO_USER
+    fi
     curl "$URL/duocms/api/dokku" --ipv4 --silent \
       --data "app[name]=$APP" \
       --data "app[meta][container_id]=${CONTAINER:0:12}" \
