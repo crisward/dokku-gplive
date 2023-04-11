@@ -4,21 +4,22 @@ SSH_USER=$1
 SSH_NAME=$2
 cmd=$3
 appname=$4
-plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
 # runs ie mariadb:list > /home/dokku/mariadb.list for mariadb:create,destroy etc
 # so sync can just read from cache
 gplive_dbupdate_cmd() {
   local typ=${1%:*}
   local cmd=$1
   local DOKKU_ROOT=$2
-  local plugins=$3
+  local plugpath=$3
   local appname=$4
-  local parent_pid=$5
-  local build_process=$(pgrep -f -u "$(whoami)" "dokku $cmd $appname")
+  local build_process=$(pgrep -f -o -u "$(whoami)" "dokku $cmd $appname")
+  local plugins=$(ls -d $plugpath/*/ 2>/dev/null)
   GPCONFIG_DIR="$DOKKU_ROOT/.gitpushcache"
   # checks if plugin exists before running command
   if [[ $plugins =~ "$typ"* ]]; then
-    timeout 30s tail --pid=$build_process -f /dev/null # wait for parent process to exit 
+    touch "/tmp/gpltemp.$build_process"
+    timeout 30s tail --pid=$build_process -f "/tmp/gpltemp.$build_process" # wait for parent process to exit
+    unlink "/tmp/gpltemp.$build_process"
     if [ -f "$GPCONFIG_DIR/URLS" ];then
       GITPUSHLIVE_BASE_URL=$(<"$GPCONFIG_DIR/URLS")
     fi
@@ -69,12 +70,15 @@ gplive_leupdate_cmd() {
 case $cmd in
   mariadb* | redis* | couchdb* | elasticsearch* | memcached* | mongo* | mysql* | postgres* | rabbitmq* | rethinkdb*)
     if [[ $cmd == *"create" ]] || [[ $cmd == *"destroy" ]] || [[ $cmd == *"link" ]] || [[ $cmd == *"unlink" ]] || [[ $cmd == *"start" ]] || [[ $cmd == *"stop" ]] || [[ $cmd == *"expose" ]] || [[ $cmd == *"unexpose" ]]; then
-      gplive_dbupdate_cmd "$cmd" "$DOKKU_ROOT" "$plugins" "$appname" "$PPID" &
+      # below allows background command to run after shell exits
+      export -f gplive_dbupdate_cmd
+      nohup bash -c "gplive_dbupdate_cmd \"$cmd\" \"$DOKKU_ROOT\" \"$PLUGIN_AVAILABLE_PATH\" \"$appname\"" &> /dev/null &
     fi
   ;;
   letsencrypt*)
     if [[ $cmd == "letsencrypt" ]] || [[ $cmd == *"revoke" ]] || [[ $cmd == *"enable" ]]; then
-      gplive_leupdate_cmd "$cmd" "$appname" "$DOKKU_ROOT" &
+      export -f gplive_leupdate_cmd
+      nohup bash -c "gplive_leupdate_cmd \"$cmd\" \"$appname\" \"$DOKKU_ROOT\"" &> /dev/null &
     fi
   ;;
 esac
