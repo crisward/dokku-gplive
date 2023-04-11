@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
+SSH_USER=$1
+SSH_NAME=$2
 cmd=$3
 appname=$4
 plugins=$(ls -d $PLUGIN_AVAILABLE_PATH/*/ 2>/dev/null)
@@ -33,6 +35,8 @@ gplive_dbupdate_cmd() {
         --data "exposed=$exposed" \
         --data "type=$typ" \
         --data "container_id=${container:0:12}" \
+        --data "ssh_user=${SSH_USER}" \
+        --data "ssh_name=${SSH_NAME}" \
         --data "status=$status"  > /dev/null
     done 
   fi
@@ -55,6 +59,8 @@ gplive_leupdate_cmd() {
   for URL in "${array[@]}"
   do
     curl "$URL/duocms/api/dokku/certs" --ipv4 --silent \
+      --data "ssh_user=${SSH_USER}" \
+      --data "ssh_name=${SSH_NAME}" \
       --data "certs=$certs" > /dev/null
   done 
 }
