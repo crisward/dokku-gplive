@@ -162,12 +162,14 @@ gplive_configbackups_cmd(){
   local bucket="$4"
   local dir="$5"
   local hour="$6"
+  local endpoint="$7"
   # test before saving
   echo "$id" > "$GPCONFIG_DIR/BACKUP_ID"
   echo "$key" > "$GPCONFIG_DIR/BACKUP_KEY"
   echo "$bucket" > "$GPCONFIG_DIR/BACKUP_BUCKET"
   echo "$dir" > "$GPCONFIG_DIR/BACKUP_DIR"
   echo "$hour" > "$GPCONFIG_DIR/BACKUP_HOUR"
+  if [ -z ${var+x} ]; then echo "$endpoint" > "$GPCONFIG_DIR/BACKUP_ENDPOINT"; fi # optional
   echo "Backup Setting Updated"
 }
 
@@ -192,6 +194,9 @@ gplive_backup_cmd(){
     GITPUSHLIVE_BACKUP_KEY=$(<"$GPCONFIG_DIR/BACKUP_KEY")
     GITPUSHLIVE_BACKUP_BUCKET=$(<"$GPCONFIG_DIR/BACKUP_BUCKET")
     GITPUSHLIVE_BACKUP_DIR=$(<"$GPCONFIG_DIR/BACKUP_DIR")
+    if [ -f "$GPCONFIG_DIR/BACKUP_ENDPOINT" ];then 
+      GITPUSHLIVE_BACKUP_ENDPOINT=$(<"$GPCONFIG_DIR/BACKUP_ENDPOINT")
+    fi
     # get backups
     if [ -f "$GPCONFIG_DIR/BACKUPS" ];then
       trap "rm -rf /tmp/gplbackups/ > /dev/null" EXIT # remove temp dir
@@ -209,8 +214,9 @@ gplive_backup_cmd(){
             docker run --rm \
             -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
+            ${GITPUSHLIVE_BACKUP_ENDPOINT:+ -e "AWS_ENDPOINT_URL=$GITPUSHLIVE_BACKUP_ENDPOINT"} \
             -v "${name}:/backup/" \
-            amazon/aws-cli s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir  </dev/null && backupNotify $GPCONFIG_DIR $name $type "success" || backupNotify $GPCONFIG_DIR $name $type "failed"
+            amazon/aws-cli:2.22.35 s3 sync /backup/ s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$dir  </dev/null && backupNotify $GPCONFIG_DIR $name $type "success" || backupNotify $GPCONFIG_DIR $name $type "failed"
           else 
             # send failed backup to gitpush
             backupNotify $GPCONFIG_DIR $name $type "failed"
@@ -224,8 +230,9 @@ gplive_backup_cmd(){
             docker run --rm \
             -e "AWS_ACCESS_KEY_ID=$GITPUSHLIVE_BACKUP_ID" \
             -e "AWS_SECRET_ACCESS_KEY=$GITPUSHLIVE_BACKUP_KEY" \
+            ${GITPUSHLIVE_BACKUP_ENDPOINT:+ -e "AWS_ENDPOINT_URL=$GITPUSHLIVE_BACKUP_ENDPOINT"} \
             -v "$backupdir:/backup/" \
-            amazon/aws-cli s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename </dev/null && backupNotify $GPCONFIG_DIR $name $type "success" || backupNotify $GPCONFIG_DIR $name $type "failed"
+            amazon/aws-cli:2.22.35 s3 cp /backup/$filename s3://$GITPUSHLIVE_BACKUP_BUCKET/$GITPUSHLIVE_BACKUP_DIR/$type/$filename </dev/null && backupNotify $GPCONFIG_DIR $name $type "success" || backupNotify $GPCONFIG_DIR $name $type "failed"
           else 
             # send failed backups to gitpush
             backupNotify $GPCONFIG_DIR $name $type "failed"
