@@ -76,9 +76,69 @@ gplive_sendstats_cmd() {
   DISKUSAGE=$(df -h | awk '$NF=="/"{printf "%s", $5}')
   : ${DISKUSAGE:="0"}
   DISKUSAGE="${DISKUSAGE//\%/''}" #remove percentage symbol
+  
+  # Collect per-container metrics
+  CONTAINERS_JSON=""
+  total_disk_kb=$(df / | awk 'NR==2 {print $2}')
+  
+  # Get all running containers with their stats (CPU%, Mem%, MemLimit)
+  docker stats --no-stream --format '{{.Container}}|{{.CPUPerc}}|{{.MemPerc}}' 2>/dev/null | while IFS='|' read -r cid cpup memp; do
+    if [ -n "$cid" ]; then
+      # Remove percentage signs and get numeric values
+      cpup=$(echo "$cpup" | sed 's/%//g')
+      memp=$(echo "$memp" | sed 's/%//g')
+      : ${cpup:="0"}
+      : ${memp:="0"}
+      
+      # Get volume sizes for this container
+      vol_total_kb=0
+      mounts=$(docker inspect "$cid" --format '{{range .Mounts}}{{.Source}} {{end}}' 2>/dev/null)
+      for mount in $mounts; do
+        if [ -d "$mount" ]; then
+          # Get size in KB using du
+          vol_kb=$(du -sk "$mount" 2>/dev/null | cut -f1)
+          vol_total_kb=$((vol_total_kb + vol_kb))
+        fi
+      done
+      
+      # Calculate volume size percentage of total disk
+      dsk_pct=0
+      if [ -n "$total_disk_kb" ] && [ "$total_disk_kb" -gt 0 ] && [ "$vol_total_kb" -gt 0 ]; then
+        dsk_pct=$(awk -v vol="$vol_total_kb" -v total="$total_disk_kb" 'BEGIN {printf "%d", (vol/total)*100}')
+      fi
+      
+      # Get short container ID (first 12 chars)
+      short_cid="${cid:0:12}"
+      
+      # Output container data in a parseable format
+      echo "$short_cid|$cpup|$memp|$dsk_pct"
+    fi
+  done > /tmp/gplive_containers_$$
+  
+  # Build containers JSON from the collected data
+  first=1
+  while IFS='|' read -r short_cid cpup memp dsk_pct; do
+    if [ -n "$short_cid" ]; then
+      if [ $first -eq 1 ]; then
+        first=0
+      else
+        CONTAINERS_JSON="$CONTAINERS_JSON,"
+      fi
+      CONTAINERS_JSON="${CONTAINERS_JSON}\"$short_cid\":{\"cpu\":$cpup,\"mem\":$memp,\"dsk\":$dsk_pct}"
+    fi
+  done < /tmp/gplive_containers_$$
+  rm -f /tmp/gplive_containers_$$
+  
+  # Build final JSON
+  if [ -n "$CONTAINERS_JSON" ]; then
+    JSON_PAYLOAD="{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE,\"containers\":{$CONTAINERS_JSON}}"
+  else
+    JSON_PAYLOAD="{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE,\"containers\":{}}"
+  fi
+  
   for URL in "${array[@]}"
   do
-    newversion=$(curl --ipv4 -sH "Content-Type: application/json" -X POST -d "{\"cpu\":$CPULOAD,\"mem\":$MEMORYUSED,\"dsk\":$DISKUSAGE}" "$URL/duocms/api/servers/stats")
+    newversion=$(curl --ipv4 -sH "Content-Type: application/json" -X POST -d "$JSON_PAYLOAD" "$URL/duocms/api/servers/stats")
   done
 }
 
