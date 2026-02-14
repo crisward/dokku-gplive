@@ -81,22 +81,24 @@ gplive_sendstats_cmd() {
   CONTAINERS_JSON=""
   total_disk_kb=$(df / | awk 'NR==2 {print $2}')
   
+  # Clear temp file and use process substitution to avoid subshell issues
+  > /tmp/gplive_containers_$$
+  
   # Get all running containers with their stats (CPU%, Mem%, MemLimit)
-  docker stats --no-stream --format '{{.Container}}|{{.CPUPerc}}|{{.MemPerc}}' 2>/dev/null | while IFS='|' read -r cid cpup memp; do
-    if [ -n "$cid" ]; then
-      # Remove percentage signs and get numeric values
-      cpup=$(echo "$cpup" | sed 's/%//g')
-      memp=$(echo "$memp" | sed 's/%//g')
-      : ${cpup:="0"}
-      : ${memp:="0"}
+  while IFS='|' read -r cid cpup memp; do
+    # Validate cid is a hex container ID (at least 12 chars of hex)
+    if [[ "$cid" =~ ^[a-f0-9]{12,}$ ]]; then
+      # Remove percentage signs, convert to integers (0-100), with defaults
+      cpup=$(printf "%.0f" "$(echo "${cpup:-0}" | sed 's/%//g')" 2>/dev/null || echo "0")
+      memp=$(printf "%.0f" "$(echo "${memp:-0}" | sed 's/%//g')" 2>/dev/null || echo "0")
       
       # Get volume sizes for this container
       vol_total_kb=0
       mounts=$(docker inspect "$cid" --format '{{range .Mounts}}{{.Source}} {{end}}' 2>/dev/null)
       for mount in $mounts; do
         if [ -d "$mount" ]; then
-          # Get size in KB using du
-          vol_kb=$(du -sk "$mount" 2>/dev/null | cut -f1)
+          # Get size in KB using du (handle permission errors gracefully)
+          vol_kb=$(du -sk "$mount" 2>/dev/null | cut -f1) || vol_kb=0
           vol_total_kb=$((vol_total_kb + vol_kb))
         fi
       done
@@ -110,10 +112,10 @@ gplive_sendstats_cmd() {
       # Get short container ID (first 12 chars)
       short_cid="${cid:0:12}"
       
-      # Output container data in a parseable format
-      echo "$short_cid|$cpup|$memp|$dsk_pct"
+      # Output container data in a parseable format (append to temp file)
+      echo "$short_cid|$cpup|$memp|$dsk_pct" >> /tmp/gplive_containers_$$
     fi
-  done > /tmp/gplive_containers_$$
+  done < <(docker stats --no-stream --format '{{.Container}}|{{.CPUPerc}}|{{.MemPerc}}' 2>/dev/null)
   
   # Build containers JSON from the collected data
   first=1
