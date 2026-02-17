@@ -97,8 +97,9 @@ gplive_sendstats_cmd() {
       mounts=$(docker inspect "$cid" --format '{{range .Mounts}}{{.Source}} {{end}}' 2>/dev/null)
       for mount in $mounts; do
         if [ -d "$mount" ]; then
-          # Get size in KB using du (handle permission errors gracefully)
-          vol_kb=$(du -sk "$mount" 2>/dev/null | cut -f1) || vol_kb=0
+          # Get size in KB using du (capture partial results even with permission errors)
+          vol_kb=$(du -sk "$mount" 2>/dev/null | cut -f1; exit 0)
+          vol_kb=${vol_kb:-0}
           vol_total_kb=$((vol_total_kb + vol_kb))
         fi
       done
