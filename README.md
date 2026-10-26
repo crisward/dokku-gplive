@@ -20,3 +20,13 @@ in parallel.
 ```
 sudo dokku plugin:install https://github.com/crisward/dokku-gplive.git gplive
 ```
+
+## Development container
+
+Open this repository in VS Code and choose **Dev Containers: Reopen in Container**.
+The container includes Go and the Claude Code CLI and VS Code extension. Run `claude`
+in the container to sign in. Claude Code configuration, authentication, and session
+history are kept in a Docker volume across container rebuilds.
+
+The persistent volume contains Claude Code credentials, so only use it with trusted
+repositories.
