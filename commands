@@ -17,6 +17,7 @@ help_content
         echo -e 'Usage: dokku gplive:command '
         echo ''
         echo '  gplive:sendstats, send basic server stats to gitpushlive, auto runs every minute'
+        echo "  gplive:upgrade, installs the binary for this plugin version, run after plugin:update"
         echo '  gplive:sendstate, sends current server state to gitpushlive'
         echo '  gplive:configbackups [aws id] [aws key] [bucket] [dir] [hour], configures the backup settings, run from gitpushlive.com'
         echo '  gplive:addbackup [type] [name], adds a volume or service to the backup script'
@@ -31,6 +32,10 @@ help_content
     gplive_sendstats_cmd "$@"
     ;;
   
+  gplive:upgrade)
+    gplive_upgrade_cmd "$@"
+    ;;
+
   gplive:sendstate)
     gplive_sendstate_cmd "$@"
     ;;

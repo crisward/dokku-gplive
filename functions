@@ -57,8 +57,26 @@ gplive_remove_cmd(){
   echo "$NEWURL" > "$GPCONFIG_DIR/URLS"
 }
 
+gplive_install_cmdline() {
+  echo "sudo PLUGIN_AVAILABLE_PATH=$PLUGIN_AVAILABLE_PATH bash $PLUGIN_AVAILABLE_PATH/gplive/install"
+}
+
 gplive_bin() {
-  "$PLUGIN_AVAILABLE_PATH/gplive/bin/gplive" "$@"
+  local bin="$PLUGIN_AVAILABLE_PATH/gplive/bin/gplive"
+  if [[ ! -x "$bin" ]]; then
+    echo "gplive binary is missing, run: $(gplive_install_cmdline)" >&2
+    return 1
+  fi
+  "$bin" "$@"
+}
+
+gplive_upgrade_cmd() {
+  declare desc="downloads the gplive binary for this plugin version and refreshes cron"
+  if [[ $(id -u) -ne 0 ]]; then
+    echo "Upgrade needs root, run: $(gplive_install_cmdline)"
+    return 1
+  fi
+  bash "$PLUGIN_AVAILABLE_PATH/gplive/install"
 }
 
 gplive_sendstats_cmd() {
