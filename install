@@ -1,14 +1,34 @@
 #!/usr/bin/env bash
 set -eo pipefail; [[ $DOKKU_TRACE ]] && set -x
 
-case "$DOKKU_DISTRO" in
-  ubuntu)
-    if [[ -z $(which curl) ]]; then
-      export DEBIAN_FRONTEND=noninteractive
-      apt-get install -qq -y curl
-    fi
-    ;;
+PLUGIN_DIR="${PLUGIN_AVAILABLE_PATH:-/var/lib/dokku/plugins/available}/gplive"
+VERSION=$(sed -n 's/^version *= *"\(.*\)"/\1/p' "$PLUGIN_DIR/plugin.toml")
+REPO="crisward/dokku-gplive"
+
+case "$(uname -m)" in
+  x86_64) ARCH=amd64 ;;
+  aarch64 | arm64) ARCH=arm64 ;;
+  *) echo "gplive: unsupported architecture $(uname -m)" >&2; exit 1 ;;
 esac
+
+# fetch the prebuilt binary for this plugin version, or build it if go is available
+mkdir -p "$PLUGIN_DIR/bin"
+BIN="$PLUGIN_DIR/bin/gplive"
+if [[ -z $(which curl) ]]; then
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get install -qq -y curl
+fi
+BASE="https://github.com/$REPO/releases/download/v$VERSION"
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+if curl -fsSL "$BASE/gplive-linux-$ARCH" -o "$TMP/gplive" && curl -fsSL "$BASE/SHA256SUMS" -o "$TMP/SHA256SUMS"; then
+  (cd "$TMP" && grep " gplive-linux-$ARCH\$" SHA256SUMS | sed "s/gplive-linux-$ARCH/gplive/" | sha256sum -c -)
+  install -m 0755 "$TMP/gplive" "$BIN"
+elif [[ -n $(which go) ]]; then
+  (cd "$PLUGIN_DIR/cmd/gplive" && go build -ldflags "-X main.version=$VERSION" -o "$BIN" .)
+else
+  echo "gplive: could not download $BASE/gplive-linux-$ARCH and go is not installed" >&2
+  exit 1
+fi
 
 # create setting dir
 mkdir -p "/home/dokku/.gitpushcache"
@@ -16,8 +36,10 @@ chown dokku:dokku /home/dokku/.gitpushcache/
 
 # remove cron if it already exists
 [ -f /etc/cron.d/gplive ] && rm /etc/cron.d/gplive
-# create cron to run every minute to update stats
+# stats run as root (not via the dokku user) so volume sizes can be read for
+# data directories owned by other uids, e.g. postgres. The binary locks itself,
+# so a slow run can't overlap the next one.
 echo "PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin">/etc/cron.d/gplive
-echo "* * * * * root dokku gplive:sendstats>/dev/null">>/etc/cron.d/gplive
+echo "* * * * * root $BIN stats >/dev/null 2>&1">>/etc/cron.d/gplive
 # and one every hour to do backups if hours match
 echo "0 * * * * root dokku gplive:autobackup>/dev/null">>/etc/cron.d/gplive

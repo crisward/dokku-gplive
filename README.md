@@ -10,8 +10,9 @@ This plugin reads
   
 It outputs all these as a single text stream. 
 
-It should be significantly quicker than running the commands individually as most of the commands are run
-in parallel.
+The collector is a single Go binary (`cmd/gplive`), downloaded from the GitHub release matching `plugin.toml` at install time (or built if `go` is present). Stats run every minute from `/etc/cron.d/gplive` as root. Container disk usage (volumes + writable layer) is measured by a low-priority background `gplive disk-refresh` and cached for 10 minutes.
+
+Release: bump `plugin.toml`, then push a matching `vX.Y.Z` tag; the workflow builds amd64/arm64 binaries.
 
 (please note, this is for an internal project and probably won't be much use to anyone)
 
