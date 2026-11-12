@@ -2,11 +2,14 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"math"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 func cpuCores() int {
@@ -28,15 +31,78 @@ func cpuCores() int {
 	return n
 }
 
-// cpuLoadPercent is the 1 minute load average as a percentage of cores
-// (truncated), matching the previous shell implementation.
-func cpuLoadPercent() int {
-	b, err := os.ReadFile("/proc/loadavg")
+// cpuSample is a snapshot of the aggregate "cpu" line of /proc/stat.
+type cpuSample struct {
+	Total uint64 `json:"total"`
+	Idle  uint64 `json:"idle"` // idle + iowait
+	At    int64  `json:"at"`   // unix seconds
+}
+
+func readCPUSample() (cpuSample, bool) {
+	b, err := os.ReadFile("/proc/stat")
 	if err != nil {
+		return cpuSample{}, false
+	}
+	line, _, _ := strings.Cut(string(b), "\n")
+	fs := strings.Fields(line)
+	if len(fs) < 5 || fs[0] != "cpu" {
+		return cpuSample{}, false
+	}
+	var s cpuSample
+	for i, f := range fs[1:] {
+		v, _ := strconv.ParseUint(f, 10, 64)
+		// guest and guest_nice (fields 9, 10) are already counted in user/nice
+		if i >= 8 {
+			break
+		}
+		s.Total += v
+		if i == 3 || i == 4 { // idle, iowait
+			s.Idle += v
+		}
+	}
+	s.At = time.Now().Unix()
+	return s, true
+}
+
+// maxCPUSampleAge is how old the saved sample may be and still be used as the
+// baseline; beyond that we take a fresh short sample instead.
+const maxCPUSampleAge = 10 * 60
+
+// cpuUsedPercent is real CPU utilisation (0-100, all cores combined), measured
+// from /proc/stat deltas. It diffs against the sample saved by the previous
+// run, falling back to a short in-process sample when there is none.
+func cpuUsedPercent() int {
+	cur, ok := readCPUSample()
+	if !ok {
 		return 0
 	}
-	load, _ := strconv.ParseFloat(strings.Fields(string(b))[0], 64)
-	return int(load * 100 / float64(cpuCores()))
+	path := filepath.Join(cacheDir(), "cpu.stat")
+	var prev cpuSample
+	have := false
+	if b, err := os.ReadFile(path); err == nil && json.Unmarshal(b, &prev) == nil {
+		have = prev.Total > 0 && cur.At-prev.At >= 0 && cur.At-prev.At <= maxCPUSampleAge && cur.Total > prev.Total
+	}
+	if !have {
+		prev = cur
+		time.Sleep(500 * time.Millisecond)
+		if cur, ok = readCPUSample(); !ok {
+			return 0
+		}
+	}
+	if b, err := json.Marshal(cur); err == nil {
+		os.WriteFile(path, b, 0o644)
+	}
+	return cpuPercent(prev, cur)
+}
+
+func cpuPercent(prev, cur cpuSample) int {
+	if cur.Total <= prev.Total || cur.Idle < prev.Idle {
+		return 0
+	}
+	total := float64(cur.Total - prev.Total)
+	idle := float64(cur.Idle - prev.Idle)
+	pct := (1 - idle/total) * 100
+	return int(math.Min(100, math.Max(0, math.Round(pct))))
 }
 
 func memInfo() (total, available float64) {

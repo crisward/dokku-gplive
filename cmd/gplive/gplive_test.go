@@ -52,3 +52,21 @@ func TestDirSizeCountsHardlinksOnce(t *testing.T) {
 		t.Errorf("hardlink double counted: %d vs %d", one, two)
 	}
 }
+
+func TestCpuPercent(t *testing.T) {
+	cases := []struct {
+		prev, cur cpuSample
+		want      int
+	}{
+		{cpuSample{Total: 1000, Idle: 800}, cpuSample{Total: 1100, Idle: 850}, 50},
+		{cpuSample{Total: 1000, Idle: 800}, cpuSample{Total: 1100, Idle: 900}, 0},
+		{cpuSample{Total: 1000, Idle: 800}, cpuSample{Total: 1100, Idle: 800}, 100},
+		{cpuSample{Total: 1000, Idle: 800}, cpuSample{Total: 1000, Idle: 800}, 0},
+		{cpuSample{Total: 1000, Idle: 800}, cpuSample{Total: 500, Idle: 100}, 0},
+	}
+	for i, c := range cases {
+		if got := cpuPercent(c.prev, c.cur); got != c.want {
+			t.Errorf("case %d: got %d want %d", i, got, c.want)
+		}
+	}
+}

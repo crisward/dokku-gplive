@@ -25,7 +25,7 @@ type statsPayload struct {
 
 func collectStats() statsPayload {
 	p := statsPayload{
-		CPU:        cpuLoadPercent(),
+		CPU:        cpuUsedPercent(),
 		Mem:        memUsedPercent(),
 		Dsk:        rootDiskUsedPercent(),
 		Containers: map[string]containerStat{},
