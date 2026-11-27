@@ -144,7 +144,7 @@ func getServices() *serviceSet {
 	const base = "/var/lib/dokku/services/"
 	for _, typ := range dirEntries(base) {
 		for _, name := range dirEntries(base + typ) {
-			svc := obj{"name": name, "type": typ, "state": "stopped", "exposed": ""}
+			svc := obj{"name": name, "type": typ, "status": "stopped", "exposed": ""}
 			s.byKey["dokku."+typ+"."+name] = svc
 			s.order = append(s.order, svc)
 		}

@@ -71,7 +71,7 @@ const maxCPUSampleAge = 10 * 60
 // cpuUsedPercent is real CPU utilisation (0-100, all cores combined), measured
 // from /proc/stat deltas. It diffs against the sample saved by the previous
 // run, falling back to a short in-process sample when there is none.
-func cpuUsedPercent() int {
+func cpuUsedPercent() pct {
 	cur, ok := readCPUSample()
 	if !ok {
 		return 0
@@ -95,14 +95,14 @@ func cpuUsedPercent() int {
 	return cpuPercent(prev, cur)
 }
 
-func cpuPercent(prev, cur cpuSample) int {
+func cpuPercent(prev, cur cpuSample) pct {
 	if cur.Total <= prev.Total || cur.Idle < prev.Idle {
 		return 0
 	}
 	total := float64(cur.Total - prev.Total)
 	idle := float64(cur.Idle - prev.Idle)
-	pct := (1 - idle/total) * 100
-	return int(math.Min(100, math.Max(0, math.Round(pct))))
+	v := (1 - idle/total) * 100
+	return pct(math.Min(100, math.Max(0, v)))
 }
 
 func memInfo() (total, available float64) {
@@ -128,23 +128,23 @@ func memInfo() (total, available float64) {
 	return
 }
 
-// float6 marshals like awk's default number output (6 significant digits).
-type float6 float64
+// pct is a percentage that marshals to JSON rounded to 2 decimal places.
+type pct float64
 
-func (f float6) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.FormatFloat(float64(f), 'g', 6, 64)), nil
+func (p pct) MarshalJSON() ([]byte, error) {
+	return []byte(strconv.FormatFloat(math.Round(float64(p)*100)/100, 'f', -1, 64)), nil
 }
 
-func memUsedPercent() float6 {
+func memUsedPercent() pct {
 	total, avail := memInfo()
 	if total == 0 {
 		return 0
 	}
-	return float6(100 - avail/total*100)
+	return pct(100 - avail/total*100)
 }
 
-// rootDiskUsedPercent matches the Use% column of `df /`.
-func rootDiskUsedPercent() int {
+// rootDiskUsedPercent is the Use% of `df /`, unrounded.
+func rootDiskUsedPercent() pct {
 	var s syscall.Statfs_t
 	if syscall.Statfs("/", &s) != nil {
 		return 0
@@ -154,7 +154,7 @@ func rootDiskUsedPercent() int {
 	if used+avail == 0 {
 		return 0
 	}
-	return int(math.Ceil(used * 100 / (used + avail)))
+	return pct(used * 100 / (used + avail))
 }
 
 func rootDiskTotalKB() int64 {

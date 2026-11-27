@@ -65,8 +65,8 @@ func TestCpuPercent(t *testing.T) {
 		{cpuSample{Total: 1000, Idle: 800}, cpuSample{Total: 500, Idle: 100}, 0},
 	}
 	for i, c := range cases {
-		if got := cpuPercent(c.prev, c.cur); got != c.want {
-			t.Errorf("case %d: got %d want %d", i, got, c.want)
+		if got := cpuPercent(c.prev, c.cur); int(got) != c.want {
+			t.Errorf("case %d: got %v want %d", i, got, c.want)
 		}
 	}
 }

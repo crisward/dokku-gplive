@@ -4,22 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"os"
 	"sync"
 	"time"
 )
 
 type containerStat struct {
-	CPU int `json:"cpu"`
-	Mem int `json:"mem"`
-	Dsk int `json:"dsk"`
+	CPU pct `json:"cpu"`
+	Mem pct `json:"mem"`
+	Dsk pct `json:"dsk"`
 }
 
 type statsPayload struct {
-	CPU        int                      `json:"cpu"`
-	Mem        float6                   `json:"mem"`
-	Dsk        int                      `json:"dsk"`
+	CPU        pct                      `json:"cpu"`
+	Mem        pct                      `json:"mem"`
+	Dsk        pct                      `json:"dsk"`
 	Containers map[string]containerStat `json:"containers"`
 }
 
@@ -55,9 +54,9 @@ func collectStats() statsPayload {
 			if err != nil {
 				return
 			}
-			s := containerStat{CPU: round(cpu), Mem: round(mem)}
+			s := containerStat{CPU: pct(cpu), Mem: pct(mem)}
 			if totalKB > 0 {
-				s.Dsk = int(float64(cache.Containers[c.shortID()].Bytes/1024) / float64(totalKB) * 100)
+				s.Dsk = pct(float64(cache.Containers[c.shortID()].Bytes/1024) / float64(totalKB) * 100)
 			}
 			mu.Lock()
 			p.Containers[c.shortID()] = s
@@ -67,8 +66,6 @@ func collectStats() statsPayload {
 	wg.Wait()
 	return p
 }
-
-func round(f float64) int { return int(math.RoundToEven(f)) }
 
 func sendStats() error {
 	lock := tryLock("stats.lock")
